@@ -1,29 +1,45 @@
 import { ScalarComparator, ScalarValue, ComplexValue } from '../types';
 
-function numberIsInside(container: number[], value: number): boolean {
-    return container.includes(value);
+/**
+ * Returns true if number is inside array
+ * @param array
+ * @param n
+ */
+function includesNumber<T>(array: T[], n: number): boolean {
+    return array.some(
+        (element) =>
+            typeof element == 'number' &&
+            !Number.isNaN(element) &&
+            !Number.isNaN(n) &&
+            element === n
+    );
 }
 
-function stringIsInside(container: string[], value: string): boolean {
-    return container.includes(value);
+function includesString<T>(array: T[], s: string): boolean {
+    return array.some((element) => element === s);
 }
 
-export function includes(operand: string): ScalarComparator;
-export function includes(operand: string[]): ScalarComparator;
-export function includes(operand: number[]): ScalarComparator;
-export function includes(operand: string | string[] | number[]): ScalarComparator {
-    const bString = typeof operand === 'string';
-    const bArray = Array.isArray(operand);
+export function includes(operand: string | (ComplexValue | ScalarValue)[]): ScalarComparator {
+    const isString = typeof operand === 'string';
+    const isArray = Array.isArray(operand);
+    if (!isString && !isArray) {
+        throw new TypeError('operand should be either string or array');
+    }
     return (value: ComplexValue | ScalarValue | undefined): boolean => {
-        if (value === undefined || typeof value === 'object') {
+        if (value === undefined || (typeof value == 'object' && value !== null)) {
             return false;
         }
-        if (bArray) {
-            return (operand as Array).includes(value);
+
+        if (isArray) {
+            if (value == null || typeof value == 'boolean') {
+                return operand.some((element) => element === value);
+            }
+            if (typeof value == 'number') {
+                return includesNumber(operand, value);
+            } else {
+                return includesString(operand, value);
+            }
         }
-        if (bString) {
-            return operand.include(value);
-        }
-        return bString ? operand.includes(value) : operand.includes(value);
+        return typeof value === 'string' && operand.indexOf(value) != -1;
     };
 }

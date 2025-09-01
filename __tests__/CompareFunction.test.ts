@@ -1,6 +1,8 @@
 import { equal } from '../src/cmp-functions/equal';
 import { notEqual } from '../src/cmp-functions/not-equal';
 import { greaterThan } from '../src/cmp-functions/greater-than';
+import { includes } from '../src/cmp-functions/includes';
+import { notIncludes } from '../src/cmp-functions/not-includes';
 
 describe('equal', function () {
     it('equality of 2 numbers', function () {
@@ -100,9 +102,43 @@ describe('notEqual', function () {
     });
 });
 
-describe('greterThan', function () {
+describe('greaterThan', function () {
     it('should return false when operant is 5 and value is 10', function () {
         expect(greaterThan(5)(10)).toBe(true);
         expect(greaterThan(15)(10)).toBe(false);
+    });
+});
+
+describe('includes', function () {
+    it('should return true when testing if [1, 2, 3, 4] contains 2', function () {
+        expect(includes([1, 2, 3, 4])(2)).toBe(true);
+        expect(includes([1, 2, 3, 4])(0)).toBe(false);
+        expect(includes([1, 2, 3, 4])(6)).toBe(false);
+        expect(includes([1, 2, 3, 4])('6')).toBe(false);
+        expect(includes([1, 2, 3, 4])(true)).toBe(false);
+
+        expect(includes([1, 'abc', 3, 4])('6')).toBe(false);
+        expect(includes([1, 'abc', 3, 4])('abc')).toBe(true);
+        expect(includes([1, 'abc', 3, 4, {}])('abc')).toBe(true);
+        expect(includes([1, 'abc', 3, 4, {}, null])(null)).toBe(true);
+        expect(includes([1, 'abc', false, 3, 4, {}, null])(false)).toBe(true);
+        expect(includes([1, 'abc', false, 3, 4, {}, null])(true)).toBe(false);
+    });
+});
+
+describe('not includes', function () {
+    it('should return inverse of includes', function () {
+        expect(notIncludes([1, 2, 3, 4])(2)).toBe(false);
+        expect(notIncludes([1, 2, 3, 4])(0)).toBe(true);
+        expect(notIncludes([1, 2, 3, 4])(6)).toBe(true);
+        expect(notIncludes([1, 2, 3, 4])('6')).toBe(true);
+        expect(notIncludes([1, 2, 3, 4])(true)).toBe(true);
+
+        expect(notIncludes([1, 'abc', 3, 4])('6')).toBe(true);
+        expect(notIncludes([1, 'abc', 3, 4])('abc')).toBe(false);
+        expect(notIncludes([1, 'abc', 3, 4, {}])('abc')).toBe(false);
+        expect(notIncludes([1, 'abc', 3, 4, {}, null])(null)).toBe(false);
+        expect(notIncludes([1, 'abc', false, 3, 4, {}, null])(false)).toBe(false);
+        expect(notIncludes([1, 'abc', false, 3, 4, {}, null])(true)).toBe(true);
     });
 });
