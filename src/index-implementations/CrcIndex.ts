@@ -1,7 +1,16 @@
 import { ReducedIndex } from './ReducedIndex';
 import { crc16, crc32 } from '../hash-tools';
+import { normalizeString } from '../string-normalizer';
 
-export class CrcIndex extends ReducedIndex<string> {
+/**
+ * Hashed index for random string values
+ */
+export class CrcIndex extends ReducedIndex<string, string> {
+    /**
+     *
+     * @param _size size of cyclic redundancy check (values : 16 or 32)
+     * @param _caseInsensitive if true then index is case-insensitive
+     */
     constructor(
         private readonly _size: 16 | 32,
         private readonly _caseInsensitive: boolean
@@ -14,7 +23,7 @@ export class CrcIndex extends ReducedIndex<string> {
 
     protected reduceValue(value: string) {
         if (this._caseInsensitive) {
-            value = value.toLocaleLowerCase();
+            value = normalizeString(value);
         }
         switch (this._size) {
             case 32: {

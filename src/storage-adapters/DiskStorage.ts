@@ -3,7 +3,7 @@ import { FsHelper } from 'o876-fs-ts';
 import path from 'node:path';
 import { JsonObject } from '../types/Json';
 
-export class FSStorage implements IStorage {
+export class DiskStorage implements IStorage {
     private readonly fs: FsHelper = new FsHelper();
     createLocation(location: string): Promise<void> {
         return this.fs.mkdir(location);

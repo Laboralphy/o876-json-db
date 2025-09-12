@@ -1,21 +1,42 @@
-import { ExactIndex } from './ExactIndex';
+import { IIndex } from '../interfaces/IIndex';
 
-export abstract class ReducedIndex<K> extends ExactIndex<string, K> {
-    protected abstract reduceValue(value: string): string;
+export abstract class ReducedIndex<T, K> implements IIndex<T, K> {
+    private indexMap: Map<T, Set<K>>;
 
-    add(value: string, primaryKey: K): void {
-        super.add(this.reduceValue(value), primaryKey);
+    constructor() {
+        this.indexMap = new Map();
     }
 
-    get(value: string): K[] {
-        return super.get(this.reduceValue(value));
+    add(value: T, primaryKey: K): void {
+        if (!this.indexMap.has(value)) {
+            this.indexMap.set(value, new Set());
+        }
+        this.indexMap.get(value)!.add(primaryKey);
     }
 
-    remove(value: string, primaryKey?: K): void {
-        return super.remove(this.reduceValue(value), primaryKey);
+    get(value: T): K[] {
+        return Array.from(this.indexMap.get(value) || []);
     }
 
-    has(value: string): boolean {
-        return super.has(this.reduceValue(value));
+    remove(value: T, primaryKey?: K): void {
+        if (!this.indexMap.has(value)) {
+            return;
+        }
+
+        if (primaryKey === undefined) {
+            this.indexMap.delete(value);
+        } else {
+            const keys = this.indexMap.get(value);
+            keys?.delete(primaryKey);
+            if (keys?.size === 0) {
+                this.indexMap.delete(value);
+            }
+        }
     }
+
+    has(value: T): boolean {
+        return this.indexMap.has(value);
+    }
+
+    protected abstract reduceValue(value: T): T;
 }

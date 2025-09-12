@@ -3,7 +3,7 @@ import { JsonObject } from '../types/Json';
 
 type Collection = Map<string, JsonObject>;
 
-export class RAMStorage implements IStorage {
+export class MemoryStorage implements IStorage {
     private _data = new Map<string, Collection>();
 
     _getCollection(location: string) {

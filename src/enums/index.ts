@@ -1,6 +1,6 @@
 export enum INDEX_TYPES {
-    FULL,
-    PART,
-    CRC16,
-    CRC32,
+    NONE,
+    PARTIAL,
+    NUMERIC,
+    HASH,
 }
