@@ -4,22 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a91333cc-2f92-4c22-8dd6-463ebca9aacc" name="Changes" comment="inside operator">
-      <change afterPath="$PROJECT_DIR$/bin/install" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/eslint.config.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/index.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Collection.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/DbIndex.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Indexer.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/storage-adapters/FSStorage.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.eslintrc.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/jest.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/jest.config.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/tsconfig.json" afterDir="false" />
-    </list>
+    <list default="true" id="a91333cc-2f92-4c22-8dd6-463ebca9aacc" name="Changes" comment="migrating" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -125,7 +110,7 @@
       <option name="presentableId" value="Default" />
       <updated>1756571653049</updated>
       <workItem from="1756571654046" duration="27155000" />
-      <workItem from="1757506420036" duration="12581000" />
+      <workItem from="1757506420036" duration="13240000" />
     </task>
     <task id="LOCAL-00001" summary="inside operator">
       <option name="closed" value="true" />
@@ -135,7 +120,15 @@
       <option name="project" value="LOCAL" />
       <updated>1756680849409</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="migrating">
+      <option name="closed" value="true" />
+      <created>1757603567865</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1757603567865</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -143,6 +136,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="inside operator" />
-    <option name="LAST_COMMIT_MESSAGE" value="inside operator" />
+    <MESSAGE value="migrating" />
+    <option name="LAST_COMMIT_MESSAGE" value="migrating" />
   </component>
 </project>
