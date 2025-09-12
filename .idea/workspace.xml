@@ -4,7 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a91333cc-2f92-4c22-8dd6-463ebca9aacc" name="Changes" comment="migrating" />
+    <list default="true" id="a91333cc-2f92-4c22-8dd6-463ebca9aacc" name="Changes" comment="inside operator">
+      <change afterPath="$PROJECT_DIR$/__tests__/ExactIndex.test.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/index-implementations/Crc16Index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/index-implementations/CrcIndex.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/index-implementations/ExactIndex.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/index-implementations/PartialIndex.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/index-implementations/ReducedIndex.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/interfaces/IIndex.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/types/Json.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/types/Json.ts" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -29,38 +39,37 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;javascript.nodejs.core.library.configured.version&quot;: &quot;22.19.0&quot;,
-    &quot;javascript.nodejs.core.library.typings.version&quot;: &quot;22.18.1&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/ralphy/projects/o876-json-db&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.standard&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.standard&quot;: &quot;&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_interpreter_path&quot;: &quot;node&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;npm.test.executor&quot;: &quot;Run&quot;,
-    &quot;npm.test:watch.executor&quot;: &quot;Run&quot;,
-    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;/home/ralphy/projects/o876-json-db/node_modules/prettier&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;settings.javascript.prettier&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;/home/ralphy/projects/o876-json-db/node_modules/typescript/lib&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "master",
+    "javascript.nodejs.core.library.configured.version": "22.14.0",
+    "javascript.nodejs.core.library.typings.version": "22.14.1",
+    "last_opened_file_path": "/home/ralphy/projects/o876-db-ts/src/index-implementations",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.standard": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.standard": "",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_interpreter_path": "/home/ralphy/.nvm/versions/node/v22.14.0/bin/node",
+    "nodejs_package_manager_path": "npm",
+    "npm.test.executor": "Run",
+    "npm.test:watch.executor": "Run",
+    "prettierjs.PrettierConfiguration.Package": "/home/ralphy/projects/o876-db-ts/node_modules/prettier",
+    "settings.editor.selected.configurable": "settings.nodejs",
+    "ts.external.directory.path": "/home/ralphy/projects/o876-db-ts/node_modules/typescript/lib",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/src/index-implementations" />
       <recent name="$PROJECT_DIR$/src/cmp-functions" />
+      <recent name="$PROJECT_DIR$" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/types" />
@@ -90,8 +99,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="npm.test" />
         <item itemvalue="npm.test:watch" />
+        <item itemvalue="npm.test" />
       </list>
     </recent_temporary>
   </component>
@@ -110,7 +119,6 @@
       <option name="presentableId" value="Default" />
       <updated>1756571653049</updated>
       <workItem from="1756571654046" duration="27155000" />
-      <workItem from="1757506420036" duration="13240000" />
     </task>
     <task id="LOCAL-00001" summary="inside operator">
       <option name="closed" value="true" />
@@ -120,15 +128,7 @@
       <option name="project" value="LOCAL" />
       <updated>1756680849409</updated>
     </task>
-    <task id="LOCAL-00002" summary="migrating">
-      <option name="closed" value="true" />
-      <created>1757603567865</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1757603567865</updated>
-    </task>
-    <option name="localTasksCounter" value="3" />
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -136,7 +136,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="inside operator" />
-    <MESSAGE value="migrating" />
-    <option name="LAST_COMMIT_MESSAGE" value="migrating" />
+    <option name="LAST_COMMIT_MESSAGE" value="inside operator" />
   </component>
 </project>
