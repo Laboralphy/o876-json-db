@@ -7,7 +7,7 @@ import { IStorage } from './interfaces/IStorage';
 import { JsonObject } from './types/Json';
 import { INDEX_TYPES } from './enums';
 import { IIndex } from './interfaces/IIndex';
-
+//
 export type IndexCommonOptions = {
     size?: number;
     caseSensitive?: boolean;
