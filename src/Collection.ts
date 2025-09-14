@@ -1,23 +1,22 @@
 import { PartialIndex } from './index-implementations/PartialIndex';
 import { CrcIndex } from './index-implementations/CrcIndex';
-import { NumericIndex } from './index-implementations/NumericIndex';
 
 import { FsHelper } from 'o876-fs-ts';
 import { IStorage } from './interfaces/IStorage';
 import { JsonObject } from './types/Json';
 import { INDEX_TYPES } from './enums';
 import { IIndex } from './interfaces/IIndex';
+import { ExactIndex } from './index-implementations/ExactIndex';
+import { NumericIndex } from './index-implementations/NumericIndex';
 //
 export type IndexCommonOptions = {
     size?: number;
     caseSensitive?: boolean;
+    precision?: number;
 };
 
 export class Collection {
     private readonly _indexManagers = {
-        partial: new Map<string, PartialIndex>(),
-        hash: new Map<string, CrcIndex>(),
-        numeric: new Map<string, NumericIndex>(),
         num: new Map<string, IIndex<number, string>>(),
         str: new Map<string, IIndex<string, string>>(),
         bool: new Map<string, IIndex<boolean, string>>(),
@@ -33,6 +32,10 @@ export class Collection {
     };
 
     constructor(private readonly _path: string) {}
+
+    get path(): string {
+        return this._path;
+    }
 
     set storage(value: IStorage) {
         this._storage = value;
@@ -88,16 +91,54 @@ export class Collection {
         return aOkKeys;
     }
 
-    linkIndex(name: string, oIndex: IIndex<number, string>);
-    linkIndex(name: string, oIndex: IIndex<string, string>);
-    linkIndex(name: string, oIndex: IIndex<boolean, string>);
-    linkIndex(name: string, oIndex: IIndex<any, string>) {
-        if (oIndex instanceof )
+    createIndex(
+        name: string,
+        indexType: INDEX_TYPES,
+        options: IndexCommonOptions = { precision: 0, size: 0, caseSensitive: false }
+    ) {
+        switch (indexType) {
+            case INDEX_TYPES.PARTIAL: {
+                const oIndex = new PartialIndex(options.size ?? 0, options.caseSensitive ?? false);
+                this._indexManagers.str.set(name, oIndex);
+                return;
+            }
+            case INDEX_TYPES.HASH: {
+                const nSize = options.size == 16 ? 16 : 32;
+                const oIndex = new CrcIndex(nSize, options.caseSensitive ?? false);
+                this._indexManagers.str.set(name, oIndex);
+                return;
+            }
+            case INDEX_TYPES.BOOLEAN: {
+                const oIndex = new ExactIndex<boolean, string>();
+                this._indexManagers.bool.set(name, oIndex);
+                return;
+            }
+            case INDEX_TYPES.NUMERIC: {
+                const oIndex = new NumericIndex(options.precision);
+                this._indexManagers.num.set(name, oIndex);
+                return;
+            }
+            default: {
+                throw new Error('Unknown index type');
+            }
+        }
     }
 
-    createIndex(
-        sName: string,
-        indexType: INDEX_TYPES,
-        options?: IndexCommonOptions = { size: 0, caseSensitive: false }
-    ) {}
+    dropIndex(name: string) {
+        this._indexManagers.str.delete(name);
+        this._indexManagers.num.delete(name);
+        this._indexManagers.bool.delete(name);
+    }
+
+    /**
+     * Return true is the key is valid (not containing characters that will upset the file system)
+     * @param key {string|number} document identifier
+     * @return {boolean}
+     * @private
+     */
+    _isKeyValid(key: string): boolean {
+        // must not contain special chars '/\?%*:|"<>.,;= '
+        // must contain only char in range 32-127
+        return !!key.match(/^[^/\\?%*:|"<>.,;= ]*$/) || !!key.match(/^[\u0021-\u007f]*$/);
+    }
 }
