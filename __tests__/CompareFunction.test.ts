@@ -1,8 +1,8 @@
-import { equal } from '../src/cmp-functions/equal';
-import { notEqual } from '../src/cmp-functions/not-equal';
-import { greaterThan } from '../src/cmp-functions/greater-than';
-import { includes } from '../src/cmp-functions/includes';
-import { notIncludes } from '../src/cmp-functions/not-includes';
+import { equal } from '../src/operators/equal';
+import { notEqual } from '../src/operators/not-equal';
+import { greaterThan } from '../src/operators/greater-than';
+import { includes } from '../src/operators/includes';
+import { notIncludes } from '../src/operators/not-includes';
 
 describe('equal', function () {
     it('equality of 2 numbers', function () {

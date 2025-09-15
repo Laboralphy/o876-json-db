@@ -8,7 +8,22 @@ import { INDEX_TYPES } from './enums';
 import { IIndex } from './interfaces/IIndex';
 import { ExactIndex } from './index-implementations/ExactIndex';
 import { NumericIndex } from './index-implementations/NumericIndex';
-import { ObjectField } from './types/ObjectField';
+import { QueryObject } from './types/QueryObject';
+import { ScalarComparator, ScalarValue } from './types';
+
+// Operators
+import { equal } from './equal';
+import { greaterThan } from './greater-than';
+import { greaterThanEqual } from './greater-than-equal';
+import { includes } from './includes';
+import { isType } from './is-type';
+import { lowerThan } from './lower-than';
+import { lowerThanEqual } from './lower-than-equal';
+import { match } from './match';
+import { mod } from './mod';
+import { notEqual } from './not-equal';
+import { notIncludes } from './not-includes';
+
 //
 export type IndexCommonOptions = {
     size?: number;
@@ -171,23 +186,42 @@ export class Collection {
      * @returns {object|null}
      * @private
      */
-    _matchingFields(data: JsonObject, oFields: ObjectField) {
+    _matchingFields(data: JsonObject, oFields: QueryObject) {
         // oFields : { element: { '$in': [ 'fire' ] } }
         return Object.keys(oFields).every((sField) => {
             const value = oFields[sField];
-            if (!(sField in data)) {
-            } else if (data[sField] === undefined || data[sField] === null) {
-            } else if (value instanceof RegExp) {
-                return data[sField].match(value);
-            } else if (getType(value) === 'object') {
-                // get operator
-                const sOp = Object.keys(value).find((s) => s.startsWith('$'));
-                if (sOp in CMP_FUNCTIONS) {
-                    const f = CMP_FUNCTIONS[sOp](value[sOp], sField, data);
+            if (sField in data) {
+                // sField references a data field
+                const dataValue = data[sField] ?? null;
+                if (dataValue === null) {
+                    return value === null;
+                } else if (dataValue === value) {
+                    return true;
+                } else if (value instanceof RegExp) {
+                    return dataValue.toString().match(value) ?? false;
+                } else {
+                    return false;
+                }
+            } else if (typeof value === 'object') {
+                const oValue = value as object;
+                const sOp = Object.keys(oValue).find((s) => s.startsWith('$'));
+                if (sOp === undefined) {
+                    return false;
+                }
+                switch (sOp) {
+                    case '$eq': {
+                        // { $eq: value }
+                        return equal(value[sOp]);
+                    }
+                }
+                if (sOp in operators) {
+                    const operand = value[sOp];
+
+                    const f = operators[sOp](value[sOp], sField, data);
                     return f(data[sField]);
                 }
             } else {
-                return data[sField] === value;
+                return false;
             }
         });
     }

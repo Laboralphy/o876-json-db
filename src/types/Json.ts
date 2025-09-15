@@ -1,4 +1,6 @@
-export type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
+import { ScalarValue } from './index';
+
+export type JsonValue = ScalarValue | JsonObject | JsonArray;
 
 /**
  * A generic description of a JSON object
