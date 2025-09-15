@@ -1,12 +1,12 @@
 import { IStorage } from '../interfaces/IStorage';
 import { JsonObject } from '../types/Json';
 
-type Collection = Map<string, JsonObject>;
+type StorageLocation = Map<string, JsonObject>;
 
 export class MemoryStorage implements IStorage {
-    private _data = new Map<string, Collection>();
+    private _data = new Map<string, StorageLocation>();
 
-    _getCollection(location: string) {
+    private _getStorageLocation(location: string) {
         if (this._data.has(location)) {
             const d = this._data.get(location);
             if (d instanceof Map) {
@@ -25,7 +25,7 @@ export class MemoryStorage implements IStorage {
      * @param location location of objects
      */
     async getList(location: string) {
-        const c = this._getCollection(location);
+        const c = this._getStorageLocation(location);
         if (c) {
             return Array.from(c.keys());
         } else {
@@ -42,7 +42,7 @@ export class MemoryStorage implements IStorage {
     }
 
     async read(location: string, name: string) {
-        const c = this._getCollection(location);
+        const c = this._getStorageLocation(location);
         if (c) {
             return c.get(name);
         } else {
@@ -57,7 +57,7 @@ export class MemoryStorage implements IStorage {
      * @param data
      */
     async write(location: string, name: string, data: JsonObject) {
-        const c = this._getCollection(location);
+        const c = this._getStorageLocation(location);
         if (c) {
             c.set(name, data);
         } else {
@@ -70,7 +70,7 @@ export class MemoryStorage implements IStorage {
      * @param name
      */
     async remove(location: string, name: string) {
-        const c = this._getCollection(location);
+        const c = this._getStorageLocation(location);
         if (c) {
             c.delete(name);
         }
