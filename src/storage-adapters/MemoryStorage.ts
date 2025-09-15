@@ -12,11 +12,11 @@ export class MemoryStorage implements IStorage {
             if (d instanceof Map) {
                 return d;
             } else {
-                throw new TypeError(`storage location of wrong type`);
+                throw new TypeError(`storage location ${location} of wrong type (should be a Map)`);
             }
         } else {
             // location not found
-            return undefined;
+            throw new TypeError(`storage location ${location} not found`);
         }
     }
 
@@ -43,11 +43,7 @@ export class MemoryStorage implements IStorage {
 
     async read(location: string, name: string) {
         const c = this._getStorageLocation(location);
-        if (c) {
-            return c.get(name);
-        } else {
-            return undefined;
-        }
+        return c.get(name);
     }
 
     /**
@@ -58,11 +54,7 @@ export class MemoryStorage implements IStorage {
      */
     async write(location: string, name: string, data: JsonObject) {
         const c = this._getStorageLocation(location);
-        if (c) {
-            c.set(name, data);
-        } else {
-            throw new Error(`collection ${location} not found`);
-        }
+        c.set(name, data);
     }
 
     /**
@@ -71,8 +63,6 @@ export class MemoryStorage implements IStorage {
      */
     async remove(location: string, name: string) {
         const c = this._getStorageLocation(location);
-        if (c) {
-            c.delete(name);
-        }
+        c.delete(name);
     }
 }
