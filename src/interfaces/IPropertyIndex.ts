@@ -1,24 +1,28 @@
-export interface IIndex<T, K> {
+/**
+ * Those classes will index all values of a property, associating value to primary-key
+ */
+export interface IPropertyIndex<T, K> {
     /**
      * Adds an entry in index.
+     * The given value is associated with the given primary key
      * @param value Value to be indexed
      * @param primaryKey Primary key
      */
     add(value: T, primaryKey: K): void;
 
     /**
-     * Get all primary keys associate with value.
+     * Returns all primary keys associate with a given value.
      * @param value Searched value
      * @returns Array of primary keys (empty if none matching)
      */
     get(value: T): K[];
 
     /**
-     * Deletes an entre from index.
-     * @param value Value to be deleted
-     * @param primaryKey Primary key to remove (optional : if not provided, all entries for this value)
+     * Dissociates a primary key from a value
+     * @param value Value
+     * @param primaryKey Primary key to remove
      */
-    remove(value: T, primaryKey?: K): void;
+    remove(value: T, primaryKey: K): void;
 
     /**
      * Checks if this value has been indexed.

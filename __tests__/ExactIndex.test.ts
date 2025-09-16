@@ -8,53 +8,41 @@ describe('ExactIndex', () => {
         index = new ExactIndex<string, number>();
     });
 
-    test('ajoute une entrée et la retrouve', () => {
+    test('adds an entry and retreive ir', () => {
         index.add('pomme', 1);
         expect(index.get('pomme')).toEqual([1]);
     });
 
-    test('ajoute plusieurs clés pour une même valeur', () => {
+    test('adds several keys for a same value', () => {
         index.add('pomme', 1);
         index.add('pomme', 2);
         expect(index.get('pomme')).toEqual([1, 2]);
     });
 
-    test('retourne un tableau vide si la valeur est absente', () => {
+    test('returns empty array when asking for an unindexed value', () => {
         expect(index.get('banane')).toEqual([]);
     });
 
-    test('supprime une clé spécifique pour une valeur', () => {
+    test('removes a specific key for a given value', () => {
         index.add('pomme', 1);
         index.add('pomme', 2);
         index.remove('pomme', 1);
         expect(index.get('pomme')).toEqual([2]);
     });
 
-    test('supprime toutes les clés pour une valeur', () => {
-        index.add('pomme', 1);
-        index.add('pomme', 2);
-        index.remove('pomme');
-        expect(index.get('pomme')).toEqual([]);
-    });
-
-    test("vérifie la présence d'une valeur", () => {
+    test('checks if a value has been indexed', () => {
         index.add('pomme', 1);
         expect(index.has('pomme')).toBe(true);
         expect(index.has('banane')).toBe(false);
     });
 
-    test('ne plante pas si on supprime une clé inexistante', () => {
+    test('do not crash when removing non existent primary key', () => {
         index.add('pomme', 1);
         index.remove('pomme', 999); // Clé inexistante
         expect(index.get('pomme')).toEqual([1]);
     });
 
-    test('supprime une valeur absente sans erreur', () => {
-        index.remove('banane');
-        expect(index.get('banane')).toEqual([]);
-    });
-
-    test('ne duplique pas les clés primaires', () => {
+    test('do not duplicate same primary keys', () => {
         index.add('pomme', 1);
         index.add('pomme', 1);
         expect(index.get('pomme')).toEqual([1]);

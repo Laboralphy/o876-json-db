@@ -7,7 +7,6 @@ import { normalizeString } from '../string-normalizer';
  */
 export class CrcIndex extends ReducedIndex<string, string> {
     /**
-     *
      * @param _size size of cyclic redundancy check (values : 16 or 32)
      * @param _caseInsensitive if true then index is case-insensitive
      */

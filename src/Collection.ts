@@ -5,7 +5,7 @@ import { FsHelper } from 'o876-fs-ts';
 import { IStorage } from './interfaces/IStorage';
 import { JsonObject } from './types/Json';
 import { INDEX_TYPES } from './enums';
-import { IIndex } from './interfaces/IIndex';
+import { IPropertyIndex } from './interfaces/IPropertyIndex';
 import { ExactIndex } from './index-implementations/ExactIndex';
 import { NumericIndex } from './index-implementations/NumericIndex';
 import { QueryObject } from './types/QueryObject';
@@ -29,13 +29,14 @@ export type IndexCommonOptions = {
     size?: number;
     caseSensitive?: boolean;
     precision?: number;
+    nullable?: boolean;
 };
 
 export class Collection {
     private readonly _indexManagers = {
-        num: new Map<string, IIndex<number, string>>(),
-        str: new Map<string, IIndex<string, string>>(),
-        bool: new Map<string, IIndex<boolean, string>>(),
+        num: new Map<string, IPropertyIndex<number, string>>(),
+        str: new Map<string, IPropertyIndex<string, string>>(),
+        bool: new Map<string, IPropertyIndex<boolean, string>>(),
     };
     private _primary: string = 'id';
     private _io: FsHelper | undefined;
@@ -113,41 +114,18 @@ export class Collection {
         return aOkKeys;
     }
 
+
+
     /**
-     * Add a new index with the specified name and type
-     * @param name index name, usually same name as the indexed property
-     * @param indexType index type. see INDEX_TYPES.*
-     * @param options options for the spécified index type
+     * Index a new document
+     * @param key {string} document identifier
+     * @param data {object} document
      */
-    createIndex(
-        name: string,
-        indexType: INDEX_TYPES,
-        options: IndexCommonOptions = { precision: 0, size: 0, caseSensitive: false }
-    ) {
-        switch (indexType) {
-            case INDEX_TYPES.PARTIAL: {
-                const oIndex = new PartialIndex(options.size ?? 0, options.caseSensitive ?? false);
-                this._indexManagers.str.set(name, oIndex);
-                return;
-            }
-            case INDEX_TYPES.HASH: {
-                const nSize = options.size == 16 ? 16 : 32;
-                const oIndex = new CrcIndex(nSize, options.caseSensitive ?? false);
-                this._indexManagers.str.set(name, oIndex);
-                return;
-            }
-            case INDEX_TYPES.BOOLEAN: {
-                const oIndex = new ExactIndex<boolean, string>();
-                this._indexManagers.bool.set(name, oIndex);
-                return;
-            }
-            case INDEX_TYPES.NUMERIC: {
-                const oIndex = new NumericIndex(options.precision);
-                this._indexManagers.num.set(name, oIndex);
-                return;
-            }
-            default: {
-                throw new Error('Unknown index type');
+    indexDocument (key, data) {
+        const aIndices = this._index.indices;
+        for (const idx of aIndices) {
+            if (idx in data) {
+                this._indexManagers.addIndexedValue(idx, data[idx], key);
             }
         }
     }
@@ -164,65 +142,9 @@ export class Collection {
         return !!key.match(/^[^/\\?%*:|"<>.,;= ]*$/) || !!key.match(/^[\u0021-\u007f]*$/);
     }
 
-    /**
-     * Checks if a document matches the spécified predicate
-     * @param data
-     * @param key document identifier
-     * @param pFunction predicate
-     * @private
-     */
-    private _matchingPredicate(
-        data: JsonObject,
-        key: string,
-        pFunction: (data: JsonObject, key: string) => boolean
-    ) {
-        return pFunction(data, key);
-    }
-
-    /**
-     * return true if all the fields have the same values as the document
-     * @param data {object} document
-     * @param oFields {object} searching fields
-     * @returns {object|null}
-     * @private
-     */
-    _matchingFields(data: JsonObject, oFields: QueryObject) {
-        // oFields : { element: { '$in': [ 'fire' ] } }
-        return Object.keys(oFields).every((sField) => {
-            const value = oFields[sField];
-            if (sField in data) {
-                // sField references a data field
-                const dataValue = data[sField] ?? null;
-                if (dataValue === null) {
-                    return value === null;
-                } else if (dataValue === value) {
-                    return true;
-                } else if (value instanceof RegExp) {
-                    return dataValue.toString().match(value) ?? false;
-                } else {
-                    return false;
-                }
-            } else if (typeof value === 'object') {
-                const oValue = value as object;
-                const sOp = Object.keys(oValue).find((s) => s.startsWith('$'));
-                if (sOp === undefined) {
-                    return false;
-                }
-                switch (sOp) {
-                    case '$eq': {
-                        // { $eq: value }
-                        return equal(value[sOp]);
-                    }
-                }
-                if (sOp in operators) {
-                    const operand = value[sOp];
-
-                    const f = operators[sOp](value[sOp], sField, data);
-                    return f(data[sField]);
-                }
-            } else {
-                return false;
-            }
-        });
+    async save(key: string, oDocument: JsonObject) {
+        await this.storage.write(this._path, key, oDocument);
+        this._keys.add(key);
+        this.
     }
 }
