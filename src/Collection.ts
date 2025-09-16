@@ -12,17 +12,18 @@ import { QueryObject } from './types/QueryObject';
 import { ScalarComparator, ScalarValue } from './types';
 
 // Operators
-import { equal } from './equal';
-import { greaterThan } from './greater-than';
-import { greaterThanEqual } from './greater-than-equal';
-import { includes } from './includes';
-import { isType } from './is-type';
-import { lowerThan } from './lower-than';
-import { lowerThanEqual } from './lower-than-equal';
-import { match } from './match';
-import { mod } from './mod';
-import { notEqual } from './not-equal';
-import { notIncludes } from './not-includes';
+import { equal } from './operators/equal';
+import { greaterThan } from './operators/greater-than';
+import { greaterThanEqual } from './operators/greater-than-equal';
+import { includes } from './operators/includes';
+import { isType } from './operators/is-type';
+import { lowerThan } from './operators/lower-than';
+import { lowerThanEqual } from './operators/lower-than-equal';
+import { match } from './operators/match';
+import { mod } from './operators/mod';
+import { notEqual } from './operators/not-equal';
+import { notIncludes } from './operators/not-includes';
+import { IndexManager } from './IndexManager';
 
 //
 export type IndexCommonOptions = {
@@ -33,13 +34,7 @@ export type IndexCommonOptions = {
 };
 
 export class Collection {
-    private readonly _indexManagers = {
-        num: new Map<string, IPropertyIndex<number, string>>(),
-        str: new Map<string, IPropertyIndex<string, string>>(),
-        bool: new Map<string, IPropertyIndex<boolean, string>>(),
-    };
-    private _primary: string = 'id';
-    private _io: FsHelper | undefined;
+    private _indexManager = new IndexManager();
     private _storage: IStorage | undefined;
     private _keys = new Set<string>();
     private readonly _lastQuery = {
@@ -114,22 +109,6 @@ export class Collection {
         return aOkKeys;
     }
 
-
-
-    /**
-     * Index a new document
-     * @param key {string} document identifier
-     * @param data {object} document
-     */
-    indexDocument (key, data) {
-        const aIndices = this._index.indices;
-        for (const idx of aIndices) {
-            if (idx in data) {
-                this._indexManagers.addIndexedValue(idx, data[idx], key);
-            }
-        }
-    }
-
     /**
      * Return true is the key is valid (not containing characters that will upset the file system)
      * @param key {string|number} document identifier
@@ -145,6 +124,5 @@ export class Collection {
     async save(key: string, oDocument: JsonObject) {
         await this.storage.write(this._path, key, oDocument);
         this._keys.add(key);
-        this.
     }
 }
