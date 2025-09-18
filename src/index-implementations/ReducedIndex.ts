@@ -2,6 +2,7 @@ import { IPropertyIndex } from '../interfaces/IPropertyIndex';
 
 export abstract class ReducedIndex<T, K> implements IPropertyIndex<T, K> {
     private propertyIndex: Map<T, Set<K>>;
+    private sortedProperties: T[] | null = [];
 
     constructor() {
         this.propertyIndex = new Map(); // to get all primary keys to documents whose property as a given value
@@ -13,10 +14,15 @@ export abstract class ReducedIndex<T, K> implements IPropertyIndex<T, K> {
             this.propertyIndex.set(value, new Set());
         }
         this.propertyIndex.get(value)!.add(primaryKey);
+        this.sortedProperties = null;
     }
 
     get(value: T): K[] {
         return Array.from(this.propertyIndex.get(this.reduceValue(value)) || []);
+    }
+
+    getLowerThan(value: T): K[] {
+        if (!this.sortedProperties)
     }
 
     remove(value: T, primaryKey: K): void {
@@ -27,11 +33,16 @@ export abstract class ReducedIndex<T, K> implements IPropertyIndex<T, K> {
             if (keys.size === 0) {
                 this.propertyIndex.delete(value);
             }
+            this.sortedProperties = null;
         }
     }
 
     has(value: T): boolean {
         return this.propertyIndex.has(this.reduceValue(value));
+    }
+
+    clear(): void {
+        this.propertyIndex.clear();
     }
 
     protected abstract reduceValue(value: T): T;

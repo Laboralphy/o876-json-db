@@ -4,10 +4,16 @@ import { PartialIndex } from './index-implementations/PartialIndex';
 import { CrcIndex } from './index-implementations/CrcIndex';
 import { ExactIndex } from './index-implementations/ExactIndex';
 import { NumericIndex } from './index-implementations/NumericIndex';
-import { IndexCommonOptions } from './Collection';
 import { JsonObject } from './types/Json';
 import { NullableIndex } from './index-implementations/NullableIndex';
 import { ScalarValue } from './types';
+
+export type IndexCommonOptions = {
+    size?: number;
+    caseSensitive?: boolean;
+    precision?: number;
+    nullable?: boolean;
+};
 
 class RegistryEntry {
     constructor(
@@ -78,6 +84,33 @@ export class IndexManager {
             }
         }
         this.registry.set(name, new RegistryEntry(name, indexType, options));
+    }
+
+    clearIndex(indexName: string) {
+        if (this.str.has(indexName)) {
+            const indexMap = this.str.get(indexName);
+            if (indexMap) {
+                indexMap.clear();
+            }
+        }
+        if (this.num.has(indexName)) {
+            const indexMap = this.num.get(indexName);
+            if (indexMap) {
+                indexMap.clear();
+            }
+        }
+        if (this.bool.has(indexName)) {
+            const indexMap = this.bool.get(indexName);
+            if (indexMap) {
+                indexMap.clear();
+            }
+        }
+    }
+
+    clearAll() {
+        for (const indexName of this.registry.keys()) {
+            this.clearIndex(indexName);
+        }
     }
 
     /**
@@ -266,6 +299,13 @@ export class IndexManager {
         } else {
             return undefined;
         }
-        return [];
+    }
+
+    /**
+     * Returns true if property is indexed
+     * @param prop property name
+     */
+    isIndexed(prop: string): boolean {
+        return this.registry.has(prop);
     }
 }

@@ -33,7 +33,7 @@ export class DiskStorage implements IStorage {
             const sFilename = this.getFilename(location, name);
             await this.fs.rm(sFilename);
         } catch {
-            return undefined;
+            return;
         }
     }
 
@@ -42,7 +42,7 @@ export class DiskStorage implements IStorage {
             const sFilename = this.getFilename(location, name);
             await this.fs.write(sFilename, JSON.stringify(data, null, 2));
         } catch {
-            return undefined;
+            return;
         }
     }
 }

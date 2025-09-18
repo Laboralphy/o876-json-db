@@ -41,4 +41,9 @@ export class NullableIndex<T, K> implements IPropertyIndex<T, K> {
             return this.index.has(value);
         }
     }
+
+    clear(): void {
+        this.nullIndex.clear();
+        this.index.clear();
+    }
 }
