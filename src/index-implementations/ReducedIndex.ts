@@ -21,10 +21,6 @@ export abstract class ReducedIndex<T, K> implements IPropertyIndex<T, K> {
         return Array.from(this.propertyIndex.get(this.reduceValue(value)) || []);
     }
 
-    getLowerThan(value: T): K[] {
-        if (!this.sortedProperties)
-    }
-
     remove(value: T, primaryKey: K): void {
         value = this.reduceValue(value);
         if (this.propertyIndex.has(value)) {

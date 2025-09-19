@@ -10,7 +10,7 @@ import { ScalarValue } from './types';
 
 export type IndexCommonOptions = {
     size?: number;
-    caseSensitive?: boolean;
+    caseInsensitive?: boolean;
     precision?: number;
     nullable?: boolean;
 };
@@ -53,19 +53,22 @@ export class IndexManager {
         options: IndexCommonOptions = {
             precision: 0,
             size: 0,
-            caseSensitive: false,
+            caseInsensitive: false,
             nullable: false,
         }
     ) {
         switch (indexType) {
             case INDEX_TYPES.PARTIAL: {
-                const oIndex = new PartialIndex(options.size ?? 0, options.caseSensitive ?? false);
+                const oIndex = new PartialIndex(
+                    options.size ?? 0,
+                    options.caseInsensitive ?? false
+                );
                 this.str.set(name, options.nullable ? new NullableIndex(oIndex) : oIndex);
                 break;
             }
             case INDEX_TYPES.HASH: {
                 const nSize = options.size == 16 ? 16 : 32;
-                const oIndex = new CrcIndex(nSize, options.caseSensitive ?? false);
+                const oIndex = new CrcIndex(nSize, options.caseInsensitive ?? false);
                 this.str.set(name, options.nullable ? new NullableIndex(oIndex) : oIndex);
                 break;
             }

@@ -2,30 +2,20 @@ import { IStorage } from './interfaces/IStorage';
 import { JsonObject } from './types/Json';
 import { INDEX_TYPES } from './enums';
 
-// Operators
-import { equal } from './operators/equal';
-import { greaterThan } from './operators/greater-than';
-import { greaterThanEqual } from './operators/greater-than-equal';
-import { includes } from './operators/includes';
-import { isType } from './operators/is-type';
-import { lowerThan } from './operators/lower-than';
-import { lowerThanEqual } from './operators/lower-than-equal';
-import { match } from './operators/match';
-import { mod } from './operators/mod';
-import { notEqual } from './operators/not-equal';
-import { notIncludes } from './operators/not-includes';
 import { IndexManager, IndexCommonOptions } from './IndexManager';
 import { FieldValue, QueryObject } from './types/QueryObject';
 import { Cursor } from './Cursor';
+import { ILoader } from './interfaces/ILoader';
 
 export type IndexCreationOptions = {
     type: INDEX_TYPES;
 } & IndexCommonOptions;
 
-export class Collection {
+export class Collection implements ILoader {
     private _indexManager = new IndexManager();
     private _storage: IStorage | undefined;
     private _keys = new Set<string>();
+    private _bInit = false;
 
     constructor(
         private readonly _path: string,
@@ -57,12 +47,17 @@ export class Collection {
     }
 
     async init() {
+        if (this._bInit) {
+            throw new Error(`collection ${this._path} already initialized.`);
+        }
         await this.storage.createLocation(this._path);
         const aKeys = await this.storage.getList(this._path);
         this._keys = new Set<string>(aKeys);
         for (const [indexName, indexOptions] of Object.entries(this._indexOptions)) {
             this.createIndex(indexName, indexOptions.type, indexOptions);
         }
+        await this.indexAllDocuments();
+        this._bInit = true;
     }
 
     /**
@@ -71,7 +66,7 @@ export class Collection {
      * @param keys starting set of keys, if not specified, take all collection keys
      * @private
      */
-    private async _forEachDocument(
+    async filter(
         pFunction: (data: JsonObject, key: string) => boolean,
         keys?: string[] | undefined
     ): Promise<string[]> {
@@ -120,7 +115,16 @@ export class Collection {
      * @param indexType index type ; see INDEX_TYPES enum
      * @param options index options
      */
-    createIndex(name: string, indexType: INDEX_TYPES, options: IndexCommonOptions = {}): void {
+    private createIndex(
+        name: string,
+        indexType: INDEX_TYPES,
+        options: IndexCommonOptions = {}
+    ): void {
+        if (this._bInit) {
+            throw new Error(
+                `collection ${this._path} already initialized. index should have been declared at construction`
+            );
+        }
         this._indexManager.createIndex(name, indexType, options);
     }
 
@@ -138,9 +142,9 @@ export class Collection {
     /**
      * indexes all documents
      */
-    async indexAllDocuments(): Promise<void> {
+    private async indexAllDocuments(): Promise<void> {
         this._indexManager.clearAll();
-        await this._forEachDocument((data: JsonObject, key: string) => {
+        await this.filter((data: JsonObject, key: string) => {
             this._indexManager.indexDocument(key, data);
             return false;
         });
@@ -179,6 +183,44 @@ export class Collection {
         this._keys.delete(key);
     }
 
+    /**
+     * Evaluate an indexed property value.
+     * Returns a list of keys pointing to document where the clause sPropName = propValue is true
+     */
+    evaluateIndexedProperty(sPropName: string, propValue: FieldValue): string[] {
+        if (
+            typeof propValue === 'number' ||
+            typeof propValue === 'string' ||
+            typeof propValue === 'boolean' ||
+            propValue === null
+        ) {
+            return this._indexManager.getIndexedKeys(sPropName, propValue) ?? [];
+        }
+        return [];
+    }
+
+    evaluateNonIndexedProperty(sPropName: string, propValue: FieldValue): Promise<string[]> {
+        if (
+            typeof propValue === 'number' ||
+            typeof propValue === 'string' ||
+            typeof propValue === 'boolean' ||
+            propValue === null
+        ) {
+            return this.filter((data: JsonObject) => propValue === data[sPropName]);
+        }
+        return Promise.resolve([]);
+    }
+
+    /**
+     * Removes from targetSet all items that are not in filterSet, and return result
+     * Does not mutate targetSet
+     * @param targetSet
+     * @param filterSet
+     */
+    intersection(targetSet: Set<string>, filterSet: Set<string>) {
+        return new Set([...targetSet].filter((element) => filterSet.has(element)));
+    }
+
     async find(oQuery: QueryObject): Promise<Cursor> {
         const indexedClauseMap = new Map<string, FieldValue>();
         const nonIndexedClauseMap = new Map<string, FieldValue>();
@@ -190,8 +232,37 @@ export class Collection {
                 nonIndexedClauseMap.set(fieldName, fieldValue);
             }
         }
+        // indexed clauses process
+        let foundKeys = new Set<string>();
+        let bFoundKeyUninitialized = true;
         if (indexedClauseMap.size > 0) {
-            const aIndexedKeys =
+            for (const [propName, value] of indexedClauseMap.entries()) {
+                // propName is a real name of an indexed property
+                // value can be a single value or a complex object
+                const fk = this.evaluateIndexedProperty(propName, value);
+                if (bFoundKeyUninitialized) {
+                    bFoundKeyUninitialized = false;
+                    fk.forEach((key) => {
+                        foundKeys.add(key);
+                    });
+                } else {
+                    foundKeys = this.intersection(foundKeys, new Set(fk));
+                }
+            }
         }
+        if (nonIndexedClauseMap.size > 0) {
+            for (const [propName, value] of nonIndexedClauseMap.entries()) {
+                const fk = await this.evaluateNonIndexedProperty(propName, value);
+                if (bFoundKeyUninitialized) {
+                    bFoundKeyUninitialized = false;
+                    fk.forEach((key) => {
+                        foundKeys.add(key);
+                    });
+                } else {
+                    foundKeys = this.intersection(foundKeys, new Set(fk));
+                }
+            }
+        }
+        return new Cursor(Array.from(foundKeys), this);
     }
 }
