@@ -1,6 +1,6 @@
 {
   "name": "o876-json-db",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "",
   "type": "module",
   "scripts": {
@@ -22,8 +22,7 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.42.0"
   },
-  "private": true,
   "dependencies": {
-    "o876-fs-ts": "github:Laboralphy/o876-fs-ts#v1.0.0"
+    "o876-fs-ts": "github:Laboralphy/o876-fs-ts#v1.0.1"
   }
 }
