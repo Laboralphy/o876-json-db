@@ -286,4 +286,72 @@ describe('Collection find', function () {
         expect(x.count).toBe(1);
         await expect(x.first()).resolves.toEqual({ id: 1010, name: 'Jack', age: 42 });
     });
+
+    it('should find [jack, 42] when having partialindex(2) and numeric(10)', async function () {
+        const c = new Collection('my_path', {
+            name: {
+                type: INDEX_TYPES.PARTIAL,
+                caseInsensitive: true,
+                size: 2,
+            },
+            age: {
+                type: INDEX_TYPES.NUMERIC,
+                precision: 10,
+            },
+        });
+        c.storage = new TestStorage();
+        await c.init();
+        await c.save('1000', { id: 1000, name: 'jack', age: 50 });
+        await c.save('1010', { id: 1010, name: 'Jack', age: 42 });
+        await c.save('1015', { id: 1015, name: 'Jack', age: 43 });
+        await c.save('1020', { id: 1020, name: 'Jeff', age: 52 });
+        await c.save('1030', { id: 1030, name: 'Alice', age: 33 });
+        await c.save('1040', { id: 1040, name: 'bob', age: 42 });
+        const x = await c.find({ name: 'jack', age: 42 });
+        expect(x.count).toBe(1);
+        await expect(x.first()).resolves.toEqual({ id: 1010, name: 'Jack', age: 42 });
+    });
+
+    it('should find object', async function () {
+        const c = new Collection('my_path', {
+            ban: {
+                type: INDEX_TYPES.TRUTHY,
+                nullable: true,
+            },
+        });
+        c.storage = new TestStorage();
+        await c.init();
+        await c.save('1000', { id: 1000, name: 'alice', ban: null });
+        await c.save('1010', { id: 1010, name: 'bob', ban: { date: 20090812 } });
+        await c.save('1015', { id: 1015, name: 'charlie', ban: null });
+        await c.save('1020', { id: 1020, name: 'debora', ban: null });
+        await c.save('1030', { id: 1030, name: 'eliza', ban: { date: 20201015 } });
+        await c.save('1040', { id: 1040, name: 'felix', ban: null });
+        const x = await c.find({ ban: { $empty: false } });
+        expect(x.count).toBe(2);
+        await expect(x.fetchAll()).resolves.toEqual([
+            { id: 1010, name: 'bob', ban: { date: 20090812 } },
+            { id: 1030, name: 'eliza', ban: { date: 20201015 } },
+        ]);
+    });
+    it('should return 1015 & 1030 & 1040 (contains "li")', async function () {
+        const c = new Collection('my_path', {
+            ban: {
+                type: INDEX_TYPES.TRUTHY,
+                nullable: true,
+            },
+        });
+        c.storage = new TestStorage();
+        await c.init();
+        await c.save('1000', { id: 1000, name: 'alice', ban: null });
+        await c.save('1010', { id: 1010, name: 'bob', ban: { date: 20090812 } });
+        await c.save('1015', { id: 1015, name: 'charlie', ban: null });
+        await c.save('1020', { id: 1020, name: 'debora', ban: null });
+        await c.save('1030', { id: 1030, name: 'eliza', ban: { date: 20201015 } });
+        await c.save('1040', { id: 1040, name: 'felix', ban: null });
+        const x = await c.find({ name: /([EA])LI/i });
+        expect(x.count).toBe(3);
+        const x2 = await c.find({ name: /bo/i });
+        expect(x2.count).toBe(2);
+    });
 });

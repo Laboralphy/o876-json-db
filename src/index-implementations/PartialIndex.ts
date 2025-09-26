@@ -7,7 +7,7 @@ import { normalizeString } from '../string-normalizer';
  * Suitable index for fields of string with random length and content
  * Usually use 6 chars of size
  */
-export class PartialIndex extends ReducedIndex<string, string> {
+export class PartialIndex extends ReducedIndex<string, string, string> {
     /**
      * @param _size size of partial chunk (in characters)
      * @param _caseInsensitive if true then index is case-insensitive

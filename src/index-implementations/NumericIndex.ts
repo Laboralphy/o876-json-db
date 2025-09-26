@@ -6,7 +6,7 @@ import { ReducedIndex } from './ReducedIndex';
  * Suitable index for fields of string with random length and content
  * Usually use 6 chars of size
  */
-export class NumericIndex extends ReducedIndex<number, string> {
+export class NumericIndex extends ReducedIndex<number, string, number> {
     /**
      * @param _precision size of numeric range
      */

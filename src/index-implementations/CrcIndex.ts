@@ -5,7 +5,7 @@ import { normalizeString } from '../string-normalizer';
 /**
  * Hashed index for random string values
  */
-export class CrcIndex extends ReducedIndex<string, string> {
+export class CrcIndex extends ReducedIndex<string, string, string> {
     /**
      * @param _size size of cyclic redundancy check (values : 16 or 32)
      * @param _caseInsensitive if true then index is case-insensitive

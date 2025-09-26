@@ -4,9 +4,14 @@ import { ScalarValue } from './types';
  * Compares two values of type number, string, boolean, or null
  * @param a first value
  * @param b second value
+ * @param bCaseInsensitive
  * @return 0 if a = b, lower than 0 if a smaller than b, greater than 0 if a greater than b
  */
-export function comparator(a: ScalarValue | undefined, b: ScalarValue | undefined): number {
+export function comparator(
+    a: ScalarValue | undefined,
+    b: ScalarValue | undefined,
+    bCaseInsensitive: boolean = false
+): number {
     if (a === b) {
         // same value of same type
         return 0;
@@ -58,5 +63,9 @@ export function comparator(a: ScalarValue | undefined, b: ScalarValue | undefine
     }
     // a and b are obviously string
     // returns a localeCompare
-    return a.localeCompare(b);
+    if (bCaseInsensitive) {
+        return a.toLocaleLowerCase().localeCompare(b.toLocaleLowerCase());
+    } else {
+        return a.localeCompare(b);
+    }
 }

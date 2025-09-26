@@ -89,4 +89,14 @@ describe('IndexManager', () => {
             expect(im.getIndexedKeys('qty', 5)).toEqual(['5', '6']);
         });
     });
+
+    describe('when creating a truthyIndex', () => {
+        it('should return 1', () => {
+            const im = new IndexManager();
+            im.createIndex('enabled', INDEX_TYPES.TRUTHY, {});
+            im.indexDocument('1', { enabled: true });
+            im.indexDocument('2', { enabled: false });
+            expect(im.getIndexedKeys('enabled', true)).toEqual(['1']);
+        });
+    });
 });

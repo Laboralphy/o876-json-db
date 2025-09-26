@@ -4,4 +4,5 @@ export enum INDEX_TYPES {
     NUMERIC,
     BOOLEAN,
     HASH,
+    TRUTHY,
 }

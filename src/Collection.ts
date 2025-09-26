@@ -1,11 +1,13 @@
 import { IStorage } from './interfaces/IStorage';
-import { JsonObject } from './types/Json';
+import { JsonObject, JsonValue } from './types/Json';
 import { INDEX_TYPES } from './enums';
 
 import { IndexManager, IndexCommonOptions } from './IndexManager';
 import { FieldValue, QueryObject } from './types/QueryObject';
 import { Cursor } from './Cursor';
 import { ILoader } from './interfaces/ILoader';
+import { comparator } from './comparator';
+import { empty } from './operators/empty';
 
 export type IndexCreationOptions = {
     type: INDEX_TYPES;
@@ -44,6 +46,10 @@ export class Collection implements ILoader {
 
     get keys(): string[] {
         return [...this._keys];
+    }
+
+    get indexManager(): IndexManager {
+        return this._indexManager;
     }
 
     async init() {
@@ -183,23 +189,69 @@ export class Collection implements ILoader {
         this._keys.delete(key);
     }
 
+    async evaluateOperator(
+        sPropName: string,
+        propValue: FieldValue
+    ): Promise<string[] | undefined> {
+        if (propValue instanceof RegExp) {
+            return this.filter((data) => {
+                if (typeof data[sPropName] == 'string') {
+                    const r = data[sPropName].match(propValue);
+                    return !!r;
+                } else {
+                    return false;
+                }
+            });
+        } else if (
+            typeof propValue === 'object' &&
+            propValue !== null &&
+            !Array.isArray(propValue)
+        ) {
+            const [operator, operand] = Object.entries(propValue).shift() ?? ['', null];
+            switch (operator) {
+                case '$empty': {
+                    if (typeof operand == 'boolean') {
+                        return empty(this, sPropName, operand);
+                    } else {
+                        throw new TypeError(`Unexpected operand type for operator '${operator}'`);
+                    }
+                }
+            }
+        }
+        return undefined;
+    }
+
     /**
      * Evaluate an indexed property value.
      * Returns a list of keys pointing to document where the clause sPropName = propValue is true
      */
-    evaluateIndexedProperty(sPropName: string, propValue: FieldValue): string[] {
+    async evaluateIndexedProperty(sPropName: string, propValue: FieldValue): Promise<string[]> {
         if (
             typeof propValue === 'number' ||
             typeof propValue === 'string' ||
             typeof propValue === 'boolean' ||
             propValue === null
         ) {
-            return this._indexManager.getIndexedKeys(sPropName, propValue) ?? [];
+            const aKeys = this._indexManager.getIndexedKeys(sPropName, propValue) ?? [];
+            const options = this._indexManager.getIndexOptions(sPropName);
+            return this.filter((data) => {
+                if (
+                    typeof data[sPropName] === 'number' ||
+                    typeof data[sPropName] === 'string' ||
+                    typeof data[sPropName] === 'boolean' ||
+                    data[sPropName] === null
+                ) {
+                    return comparator(data[sPropName], propValue, options.caseInsensitive) === 0;
+                } else {
+                    return false;
+                }
+            }, aKeys);
         }
-        return [];
+        const r = await this.evaluateOperator(sPropName, propValue);
+        return r ?? [];
     }
 
-    evaluateNonIndexedProperty(sPropName: string, propValue: FieldValue): Promise<string[]> {
+    async evaluateNonIndexedProperty(sPropName: string, propValue: FieldValue): Promise<string[]> {
         if (
             typeof propValue === 'number' ||
             typeof propValue === 'string' ||
@@ -208,7 +260,8 @@ export class Collection implements ILoader {
         ) {
             return this.filter((data: JsonObject) => propValue === data[sPropName]);
         }
-        return Promise.resolve([]);
+        const r = await this.evaluateOperator(sPropName, propValue);
+        return r ?? [];
     }
 
     /**
@@ -239,7 +292,7 @@ export class Collection implements ILoader {
             for (const [propName, value] of indexedClauseMap.entries()) {
                 // propName is a real name of an indexed property
                 // value can be a single value or a complex object
-                const fk = this.evaluateIndexedProperty(propName, value);
+                const fk = await this.evaluateIndexedProperty(propName, value);
                 if (bFoundKeyUninitialized) {
                     bFoundKeyUninitialized = false;
                     fk.forEach((key) => {

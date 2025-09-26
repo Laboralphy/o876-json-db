@@ -4,9 +4,10 @@ import { PartialIndex } from './index-implementations/PartialIndex';
 import { CrcIndex } from './index-implementations/CrcIndex';
 import { ExactIndex } from './index-implementations/ExactIndex';
 import { NumericIndex } from './index-implementations/NumericIndex';
-import { JsonObject } from './types/Json';
+import { JsonObject, JsonValue } from './types/Json';
 import { NullableIndex } from './index-implementations/NullableIndex';
 import { ScalarValue } from './types';
+import { TruthyIndex } from './index-implementations/TruthyIndex';
 
 export type IndexCommonOptions = {
     size?: number;
@@ -39,6 +40,7 @@ export class IndexManager {
     private readonly str = new Map<string, IPropertyIndex<string | null, string>>();
     private readonly num = new Map<string, IPropertyIndex<number | null, string>>();
     private readonly bool = new Map<string, IPropertyIndex<boolean | null, string>>();
+    private readonly val = new Map<string, IPropertyIndex<JsonValue, string>>();
     private readonly registry = new Map<string, RegistryEntry>();
 
     /**
@@ -82,11 +84,25 @@ export class IndexManager {
                 this.num.set(name, options.nullable ? new NullableIndex(oIndex) : oIndex);
                 break;
             }
+            case INDEX_TYPES.TRUTHY: {
+                const oIndex = new TruthyIndex();
+                this.val.set(name, oIndex);
+                break;
+            }
             default: {
                 throw new Error('Unknown index type');
             }
         }
         this.registry.set(name, new RegistryEntry(name, indexType, options));
+    }
+
+    getIndexOptions(name: string): IndexCommonOptions {
+        const r = this.registry.get(name);
+        if (r) {
+            return r.options;
+        } else {
+            throw new Error(`unknown index ${name}`);
+        }
     }
 
     clearIndex(indexName: string) {
@@ -104,6 +120,12 @@ export class IndexManager {
         }
         if (this.bool.has(indexName)) {
             const indexMap = this.bool.get(indexName);
+            if (indexMap) {
+                indexMap.clear();
+            }
+        }
+        if (this.val.has(indexName)) {
+            const indexMap = this.val.get(indexName);
             if (indexMap) {
                 indexMap.clear();
             }
@@ -161,6 +183,14 @@ export class IndexManager {
                         );
                     }
                     break;
+                }
+
+                case INDEX_TYPES.TRUTHY: {
+                    const oIndex = this.val.get(indexName);
+                    if (!oIndex) {
+                        throw new Error(`${indexName} index not found in "val" map (should be)`);
+                    }
+                    oIndex.remove(dataValue, primaryKey);
                 }
 
                 case INDEX_TYPES.PARTIAL:
@@ -241,11 +271,20 @@ export class IndexManager {
                     }
                     break;
                 }
+
+                case INDEX_TYPES.TRUTHY: {
+                    const oIndex = this.val.get(indexName);
+                    if (!oIndex) {
+                        throw new Error(`${indexName} index not found in "str" map (should be)`);
+                    }
+                    oIndex.add(dataValue, primaryKey);
+                    break;
+                }
             }
         }
     }
 
-    getIndexedKeys(indexName: string, value: ScalarValue): string[] | undefined {
+    getIndexedKeys(indexName: string, value: JsonValue): string[] | undefined {
         const registryEntry = this.registry.get(indexName);
         if (registryEntry) {
             if (!registryEntry.options.nullable && value === null) {
@@ -278,6 +317,14 @@ export class IndexManager {
                             `${indexName} requires that indexed value is of type boolean : ${typeof value} given`
                         );
                     }
+                }
+
+                case INDEX_TYPES.TRUTHY: {
+                    const oIndex = this.val.get(indexName);
+                    if (!oIndex) {
+                        throw new Error(`${indexName} index not found in "val" map (should be)`);
+                    }
+                    return oIndex.get(value);
                 }
 
                 case INDEX_TYPES.PARTIAL:

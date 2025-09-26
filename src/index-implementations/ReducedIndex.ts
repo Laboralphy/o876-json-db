@@ -1,18 +1,18 @@
 import { IPropertyIndex } from '../interfaces/IPropertyIndex';
 
-export abstract class ReducedIndex<T, K> implements IPropertyIndex<T, K> {
-    private propertyIndex: Map<T, Set<K>>;
+export abstract class ReducedIndex<T, K, X> implements IPropertyIndex<T, K> {
+    private propertyIndex: Map<X, Set<K>>;
 
     constructor() {
         this.propertyIndex = new Map(); // to get all primary keys to documents whose property as a given value
     }
 
     add(value: T, primaryKey: K): void {
-        value = this.reduceValue(value);
-        if (!this.propertyIndex.has(value)) {
-            this.propertyIndex.set(value, new Set());
+        const reducedValue = this.reduceValue(value);
+        if (!this.propertyIndex.has(reducedValue)) {
+            this.propertyIndex.set(reducedValue, new Set());
         }
-        this.propertyIndex.get(value)!.add(primaryKey);
+        this.propertyIndex.get(reducedValue)!.add(primaryKey);
     }
 
     get(value: T): K[] {
@@ -20,12 +20,12 @@ export abstract class ReducedIndex<T, K> implements IPropertyIndex<T, K> {
     }
 
     remove(value: T, primaryKey: K): void {
-        value = this.reduceValue(value);
-        if (this.propertyIndex.has(value)) {
-            const keys = this.propertyIndex.get(value)!;
+        const reducedValue = this.reduceValue(value);
+        if (this.propertyIndex.has(reducedValue)) {
+            const keys = this.propertyIndex.get(reducedValue)!;
             keys.delete(primaryKey);
             if (keys.size === 0) {
-                this.propertyIndex.delete(value);
+                this.propertyIndex.delete(reducedValue);
             }
         }
     }
@@ -38,5 +38,5 @@ export abstract class ReducedIndex<T, K> implements IPropertyIndex<T, K> {
         this.propertyIndex.clear();
     }
 
-    protected abstract reduceValue(value: T): T;
+    protected abstract reduceValue(value: T): X;
 }
