@@ -14,6 +14,9 @@ export default tseslint.config(
             '@typescript-eslint/no-explicit-any': 'warn',
             '@typescript-eslint/no-unused-vars': 'error',
             '@typescript-eslint/explicit-function-return-type': 'off',
+            'no-fallthrough': 'error', // Détecte les fall-through non intentionnels
+            '@typescript-eslint/switch-exhaustiveness-check': 'error', // Vérifie l'exhaustivité des enum
+            'default-case': 'error', // Optionnel : force un default dans les switch
         },
         languageOptions: {
             parserOptions: {

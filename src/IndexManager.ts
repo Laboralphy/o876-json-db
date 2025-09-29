@@ -6,7 +6,6 @@ import { ExactIndex } from './index-implementations/ExactIndex';
 import { NumericIndex } from './index-implementations/NumericIndex';
 import { JsonObject, JsonValue } from './types/Json';
 import { NullableIndex } from './index-implementations/NullableIndex';
-import { ScalarValue } from './types';
 import { TruthyIndex } from './index-implementations/TruthyIndex';
 
 export type IndexCommonOptions = {
@@ -191,6 +190,7 @@ export class IndexManager {
                         throw new Error(`${indexName} index not found in "val" map (should be)`);
                     }
                     oIndex.remove(dataValue, primaryKey);
+                    break;
                 }
 
                 case INDEX_TYPES.PARTIAL:

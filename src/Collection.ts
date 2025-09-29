@@ -1,5 +1,5 @@
 import { IStorage } from './interfaces/IStorage';
-import { JsonObject, JsonValue } from './types/Json';
+import { JsonObject } from './types/Json';
 import { INDEX_TYPES } from './enums';
 
 import { IndexManager, IndexCommonOptions } from './IndexManager';

@@ -355,3 +355,76 @@ describe('Collection find', function () {
         expect(x2.count).toBe(2);
     });
 });
+
+describe('bug 2025-09-30', function () {
+    it('should not fire bug', async function () {
+        const c = new Collection('my_path', {
+            name: {
+                type: INDEX_TYPES.HASH,
+                caseInsensitive: true,
+            },
+            ban: {
+                type: INDEX_TYPES.TRUTHY,
+                nullable: true,
+            },
+        });
+        c.storage = new TestStorage();
+        await c.init();
+        await c.save('ah0n7q2dmr3qwr', {
+            id: 'ah0n7q2dmr3qwr',
+            name: 'alice',
+            password: '9adfb0a6d03beb7141d8ec2708d6d9fef9259d12cd230d50f70fb221ae6cabd5',
+            email: 'alice@localhost.com',
+            tsCreation: 1759017546305,
+            tsLastUsed: 1759017546305,
+            roles: [],
+            ban: {
+                tsBegin: 1759017546305,
+                tsEnd: 1759017946305,
+                forever: false,
+                reason: 'trop débile',
+                bannedBy: '',
+            },
+        });
+        await c.save('ah0n81s38is9um', {
+            id: 'ah0n81s38is9um',
+            name: 'bob',
+            password: '9adfb0a6d03beb7141d8ec2708d6d9fef9259d12cd230d50f70fb221ae6cabd5',
+            email: 'bob123@localhost.com',
+            tsCreation: 1759017536119,
+            tsLastUsed: 1759017536119,
+            roles: [],
+            ban: null,
+        });
+        await c.save('ah0ns59zafeyd5', {
+            id: 'ah0ns59zafeyd5',
+            name: 'ralphy',
+            password: '9adfb0a6d03beb7141d8ec2708d6d9fef9259d12cd230d50f70fb221ae6cabd5',
+            email: 'ralphy@localhost.com',
+            tsCreation: 1759016317051,
+            tsLastUsed: 1759016317051,
+            roles: [],
+            ban: null,
+        });
+        const x = await c.find({ name: 'alice' });
+        expect(x.count).toBe(1);
+        await c.save('ah0n7q2dmr3qwr', {
+            id: 'ah0n7q2dmr3qwr',
+            name: 'alice',
+            password: '9adfb0a6d03beb7141d8ec2708d6d9fef9259d12cd230d50f70fb221ae6cabd5',
+            email: 'alice123@localhost.com',
+            tsCreation: 1759017546305,
+            tsLastUsed: 1759017546305,
+            roles: [],
+            ban: {
+                tsBegin: 1759017546305,
+                tsEnd: 1759017946305,
+                forever: false,
+                reason: 'trop débile',
+                bannedBy: '',
+            },
+        });
+        const x2 = await c.find({ name: 'alice' });
+        expect(x2.count).toBe(1);
+    });
+});
