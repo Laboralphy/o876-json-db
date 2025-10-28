@@ -5,14 +5,14 @@ import { CrcIndex } from './index-implementations/CrcIndex';
 import { ExactIndex } from './index-implementations/ExactIndex';
 import { NumericIndex } from './index-implementations/NumericIndex';
 import { JsonObject, JsonValue } from './types/Json';
-import { NullableIndex } from './index-implementations/NullableIndex';
 import { TruthyIndex } from './index-implementations/TruthyIndex';
+import { ScalarValue } from './types';
+import { comparator } from './comparator';
 
 export type IndexCommonOptions = {
     size?: number;
     caseInsensitive?: boolean;
     precision?: number;
-    nullable?: boolean;
 };
 
 class RegistryEntry {
@@ -36,10 +36,10 @@ class RegistryEntry {
 }
 
 export class IndexManager {
-    private readonly str = new Map<string, IPropertyIndex<string | null, string>>();
-    private readonly num = new Map<string, IPropertyIndex<number | null, string>>();
-    private readonly bool = new Map<string, IPropertyIndex<boolean | null, string>>();
-    private readonly val = new Map<string, IPropertyIndex<JsonValue, string>>();
+    private readonly str = new Map<string, IPropertyIndex<string, string, string>>();
+    private readonly num = new Map<string, IPropertyIndex<number, string, number>>();
+    private readonly bool = new Map<string, IPropertyIndex<boolean, string, boolean>>();
+    private readonly val = new Map<string, IPropertyIndex<JsonValue, string, boolean>>();
     private readonly registry = new Map<string, RegistryEntry>();
 
     /**
@@ -55,7 +55,6 @@ export class IndexManager {
             precision: 0,
             size: 0,
             caseInsensitive: false,
-            nullable: false,
         }
     ) {
         switch (indexType) {
@@ -64,23 +63,23 @@ export class IndexManager {
                     options.size ?? 0,
                     options.caseInsensitive ?? false
                 );
-                this.str.set(name, options.nullable ? new NullableIndex(oIndex) : oIndex);
+                this.str.set(name, oIndex);
                 break;
             }
             case INDEX_TYPES.HASH: {
                 const nSize = options.size == 16 ? 16 : 32;
                 const oIndex = new CrcIndex(nSize, options.caseInsensitive ?? false);
-                this.str.set(name, options.nullable ? new NullableIndex(oIndex) : oIndex);
+                this.str.set(name, oIndex);
                 break;
             }
             case INDEX_TYPES.BOOLEAN: {
                 const oIndex = new ExactIndex<boolean, string>();
-                this.bool.set(name, options.nullable ? new NullableIndex(oIndex) : oIndex);
+                this.bool.set(name, oIndex);
                 break;
             }
             case INDEX_TYPES.NUMERIC: {
                 const oIndex = new NumericIndex(options.precision);
-                this.num.set(name, options.nullable ? new NullableIndex(oIndex) : oIndex);
+                this.num.set(name, oIndex);
                 break;
             }
             case INDEX_TYPES.TRUTHY: {
@@ -148,18 +147,22 @@ export class IndexManager {
     unindexDocument(primaryKey: string, data: JsonObject) {
         for (const [indexName, registryEntry] of this.registry.entries()) {
             const dataValue = data[indexName];
-            if (!registryEntry.options.nullable && dataValue === null) {
-                throw new TypeError(
-                    `${indexName} does not support null values : must be declared as nullable`
-                );
-            }
             switch (registryEntry.indexType) {
                 case INDEX_TYPES.NUMERIC: {
+                    if (dataValue === undefined || dataValue === null) {
+                        // We don't want null or undefined value
+                        // We will support this in a future version
+                        throw new TypeError(
+                            `null or undefined values are unsupported for numeric index : property ${indexName}`
+                        );
+                    }
                     const oIndex = this.num.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "num" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "num" map (should be)`
+                        );
                     }
-                    if (dataValue === null || typeof dataValue === 'number') {
+                    if (typeof dataValue === 'number') {
                         oIndex.remove(dataValue, primaryKey);
                     } else {
                         throw new TypeError(
@@ -170,11 +173,20 @@ export class IndexManager {
                 }
 
                 case INDEX_TYPES.BOOLEAN: {
+                    if (dataValue === undefined || dataValue === null) {
+                        // We don't want null or undefined value
+                        // We will support this in a future version
+                        throw new TypeError(
+                            `null or undefined values are unsupported for numeric boolean : property ${indexName}`
+                        );
+                    }
                     const oIndex = this.bool.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "bool" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "bool" map (should be)`
+                        );
                     }
-                    if (dataValue === null || typeof dataValue === 'boolean') {
+                    if (typeof dataValue === 'boolean') {
                         oIndex.remove(dataValue, primaryKey);
                     } else {
                         throw new TypeError(
@@ -187,7 +199,9 @@ export class IndexManager {
                 case INDEX_TYPES.TRUTHY: {
                     const oIndex = this.val.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "val" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "val" map (should be)`
+                        );
                     }
                     oIndex.remove(dataValue, primaryKey);
                     break;
@@ -195,11 +209,20 @@ export class IndexManager {
 
                 case INDEX_TYPES.PARTIAL:
                 case INDEX_TYPES.HASH: {
+                    if (dataValue === undefined || dataValue === null) {
+                        // We don't want null or undefined value
+                        // We will support this in a future version
+                        throw new TypeError(
+                            `null or undefined values are unsupported for string index : property ${indexName}`
+                        );
+                    }
                     const oIndex = this.str.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "str" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "str" map (should be)`
+                        );
                     }
-                    if (dataValue === null || typeof dataValue === 'string') {
+                    if (typeof dataValue === 'string') {
                         oIndex.remove(dataValue, primaryKey);
                     } else {
                         throw new TypeError(
@@ -220,33 +243,46 @@ export class IndexManager {
     indexDocument(primaryKey: string, data: JsonObject) {
         for (const [indexName, registryEntry] of this.registry.entries()) {
             const dataValue = data[indexName];
-            if (!registryEntry.options.nullable && dataValue === null) {
-                throw new TypeError(
-                    `${indexName} does not support null values : must be declared as nullable`
-                );
-            }
             switch (registryEntry.indexType) {
                 case INDEX_TYPES.NUMERIC: {
+                    if (dataValue === undefined || dataValue === null) {
+                        // We don't want null or undefined value
+                        // We will support this in a future version
+                        throw new TypeError(
+                            `null or undefined values are unsupported for numeric index : property ${indexName}`
+                        );
+                    }
                     const oIndex = this.num.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "num" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "num" map (should be)`
+                        );
                     }
-                    if (dataValue === null || typeof dataValue === 'number') {
+                    if (typeof dataValue === 'number') {
                         oIndex.add(dataValue, primaryKey);
                     } else {
                         throw new TypeError(
-                            `${indexName} requires that indexed value is of type string : ${typeof dataValue} given`
+                            `${indexName} requires that indexed value is of type number : ${typeof dataValue} given`
                         );
                     }
                     break;
                 }
 
                 case INDEX_TYPES.BOOLEAN: {
+                    if (dataValue === undefined || dataValue === null) {
+                        // We don't want null or undefined value
+                        // We will support this in a future version
+                        throw new TypeError(
+                            `null or undefined values are unsupported for boolean index : property ${indexName}`
+                        );
+                    }
                     const oIndex = this.bool.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "bool" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "bool" map (should be)`
+                        );
                     }
-                    if (dataValue === null || typeof dataValue === 'boolean') {
+                    if (typeof dataValue === 'boolean') {
                         oIndex.add(dataValue, primaryKey);
                     } else {
                         throw new TypeError(
@@ -258,11 +294,20 @@ export class IndexManager {
 
                 case INDEX_TYPES.PARTIAL:
                 case INDEX_TYPES.HASH: {
+                    if (dataValue === undefined || dataValue === null) {
+                        // We don't want null or undefined value
+                        // We will support this in a future version
+                        throw new TypeError(
+                            `null or undefined values are unsupported for string index : property ${indexName}`
+                        );
+                    }
                     const oIndex = this.str.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "str" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "str" map (should be)`
+                        );
                     }
-                    if (dataValue === null || typeof dataValue === 'string') {
+                    if (typeof dataValue === 'string') {
                         oIndex.add(dataValue, primaryKey);
                     } else {
                         throw new TypeError(
@@ -275,7 +320,9 @@ export class IndexManager {
                 case INDEX_TYPES.TRUTHY: {
                     const oIndex = this.val.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "str" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "str" map (should be)`
+                        );
                     }
                     oIndex.add(dataValue, primaryKey);
                     break;
@@ -287,16 +334,15 @@ export class IndexManager {
     getIndexedKeys(indexName: string, value: JsonValue): string[] | undefined {
         const registryEntry = this.registry.get(indexName);
         if (registryEntry) {
-            if (!registryEntry.options.nullable && value === null) {
-                return [];
-            }
             switch (registryEntry.indexType) {
                 case INDEX_TYPES.NUMERIC: {
                     const oIndex = this.num.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "num" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "num" map (should be)`
+                        );
                     }
-                    if (value === null || typeof value === 'number') {
+                    if (typeof value === 'number') {
                         return oIndex.get(value);
                     } else {
                         throw new TypeError(
@@ -308,9 +354,11 @@ export class IndexManager {
                 case INDEX_TYPES.BOOLEAN: {
                     const oIndex = this.bool.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "bool" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "bool" map (should be)`
+                        );
                     }
-                    if (value === null || typeof value === 'boolean') {
+                    if (typeof value === 'boolean') {
                         return oIndex.get(value);
                     } else {
                         throw new TypeError(
@@ -322,7 +370,9 @@ export class IndexManager {
                 case INDEX_TYPES.TRUTHY: {
                     const oIndex = this.val.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "val" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "val" map (should be)`
+                        );
                     }
                     return oIndex.get(value);
                 }
@@ -331,9 +381,11 @@ export class IndexManager {
                 case INDEX_TYPES.HASH: {
                     const oIndex = this.str.get(indexName);
                     if (!oIndex) {
-                        throw new Error(`${indexName} index not found in "str" map (should be)`);
+                        throw new ReferenceError(
+                            `${indexName} index not found in "str" map (should be)`
+                        );
                     }
-                    if (value === null || typeof value === 'string') {
+                    if (typeof value === 'string') {
                         return oIndex.get(value);
                     } else {
                         throw new TypeError(
@@ -349,6 +401,101 @@ export class IndexManager {
         } else {
             return undefined;
         }
+    }
+
+    /**
+     * Fetches an index registry and extract all value using a comparator function
+     */
+    callRegistryComparator(
+        indexName: string,
+        value: JsonValue,
+        comparatorFunction: <T extends ScalarValue>(vcomp: T, map: Map<T, Set<string>>) => string[]
+    ) {
+        // fetching the definition of the specified index (by indexName)
+        const indexDef = this.registry.get(indexName);
+        if (indexDef) {
+            // indexDef found : continue
+            switch (indexDef.indexType) {
+                case INDEX_TYPES.NUMERIC: {
+                    // numeric index: choose suitable index registry : number
+                    const oIndex = this.num.get(indexName);
+                    if (!oIndex) {
+                        // index number registry not found : throw error
+                        throw new ReferenceError(
+                            `${indexName} index not found in "num" map (should be)`
+                        );
+                    }
+                    // index number registry found : check value type : must be number
+                    if (typeof value === 'number') {
+                        // let the comparator function have the last word
+                        return comparatorFunction(oIndex.reduceValue(value), oIndex.getIndexList());
+                    } else {
+                        // wrong type of value : throw error
+                        throw new TypeError(
+                            `${indexName} requires that indexed value is of type number : ${typeof value} given`
+                        );
+                    }
+                }
+
+                case INDEX_TYPES.PARTIAL: {
+                    // partial index is basically a string index : choose suitable index registry : string
+                    const oIndex = this.str.get(indexName);
+                    if (!oIndex) {
+                        // index string registry not found : throw error
+                        throw new ReferenceError(
+                            `${indexName} index not found in "str" map (should be)`
+                        );
+                    }
+                    // index number registry found : check value type : must be string
+                    if (typeof value === 'string') {
+                        // let the comparator function have the last word
+                        return comparatorFunction(oIndex.reduceValue(value), oIndex.getIndexList());
+                    } else {
+                        // wrong type of value : throw error
+                        throw new TypeError(
+                            `${indexName} requires that indexed value is of type string : ${typeof value} given`
+                        );
+                    }
+                }
+
+                default: {
+                    throw new Error(`this index type is invalid for a comparison`);
+                }
+            }
+        }
+        return undefined; // index registry was not found
+    }
+
+    getGreaterIndexKeys(indexName: string, value: JsonValue): string[] | undefined {
+        const f = <T extends ScalarValue>(vcomp: T, map: Map<T, Set<string>>) => {
+            const m = new Set<string>();
+            if (vcomp === null) {
+                return [];
+            }
+            for (const [v, k] of map.entries()) {
+                if (v !== null && comparator(v, vcomp) > 0) {
+                    [...k.values()].forEach((x) => m.add(x));
+                }
+            }
+            return [...m];
+        };
+        return this.callRegistryComparator(indexName, value, f);
+    }
+
+    getLesserIndexKeys(indexName: string, value: JsonValue): string[] | undefined {
+        const f = <T extends ScalarValue>(vcomp: T, map: Map<T, Set<string>>) => {
+            const m = new Set<string>();
+            if (vcomp === null) {
+                return [];
+            }
+            for (const [v, k] of map.entries()) {
+                if (v !== null && comparator(v, vcomp) < 0) {
+                    [...k.values()].forEach((x) => m.add(x));
+                }
+            }
+            return [...m];
+        };
+        return this.callRegistryComparator(indexName, value, f);
     }
 
     /**

@@ -8,6 +8,8 @@ import { Cursor } from './Cursor';
 import { ILoader } from './interfaces/ILoader';
 import { comparator } from './comparator';
 import { empty } from './operators/empty';
+import { greaterThan } from './operators/greater-than';
+import { lesserThan } from './operators/lesser-than';
 
 export type IndexCreationOptions = {
     type: INDEX_TYPES;
@@ -207,16 +209,69 @@ export class Collection implements ILoader {
             propValue !== null &&
             !Array.isArray(propValue)
         ) {
-            const [operator, operand] = Object.entries(propValue).shift() ?? ['', null];
-            switch (operator) {
-                case '$empty': {
-                    if (typeof operand == 'boolean') {
-                        return empty(this, sPropName, operand);
-                    } else {
-                        throw new TypeError(`Unexpected operand type for operator '${operator}'`);
+            let bFirst = true;
+            let result = new Set<string>();
+            for (const [operator, operand] of Object.entries(propValue)) {
+                switch (operator) {
+                    case '$empty': {
+                        if (typeof operand == 'boolean') {
+                            const k = new Set(await empty(this, sPropName, operand));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected boolean, got ${typeof operand}`
+                            );
+                        }
+                        break;
+                    }
+                    case '$gt': {
+                        if (typeof operand == 'string' || typeof operand === 'number') {
+                            const k = new Set(await greaterThan(this, sPropName, operand));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
+                            );
+                        }
+                        break;
+                    }
+                    case '$lt': {
+                        if (typeof operand == 'string' || typeof operand === 'number') {
+                            const k = new Set(await lesserThan(this, sPropName, operand));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
+                            );
+                        }
+                        break;
+                    }
+                    case '$gte': {
+                        if (typeof operand == 'string' || typeof operand === 'number') {
+                            const k = new Set(await greaterThan(this, sPropName, operand, true));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
+                            );
+                        }
+                        break;
+                    }
+                    case '$lte': {
+                        if (typeof operand == 'string' || typeof operand === 'number') {
+                            const k = new Set(await lesserThan(this, sPropName, operand, true));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
+                            );
+                        }
+                        break;
                     }
                 }
+                bFirst = false;
             }
+            return [...result];
         }
         return undefined;
     }

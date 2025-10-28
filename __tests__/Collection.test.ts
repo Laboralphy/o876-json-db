@@ -2,43 +2,7 @@ import { Collection } from '../src/Collection';
 import { IStorage } from '../src/interfaces/IStorage';
 import { JsonObject } from '../src/types/Json';
 import { INDEX_TYPES } from '../src/enums';
-
-class TestStorage implements IStorage {
-    public data: Map<string, Map<string, JsonObject>> = new Map<string, Map<string, JsonObject>>();
-
-    async createLocation(location: string): Promise<void> {
-        this.data.set(location, new Map<string, JsonObject>());
-    }
-
-    async getLocation(location: string): Promise<Map<string, JsonObject>> {
-        const r = this.data.get(location);
-        if (r) {
-            return r;
-        } else {
-            throw new Error(`location ${location} not found`);
-        }
-    }
-
-    async getList(location: string): Promise<string[]> {
-        const l = await this.getLocation(location);
-        return Array.from(l.keys());
-    }
-
-    async read(location: string, name: string): Promise<JsonObject | undefined> {
-        const l = await this.getLocation(location);
-        return l.get(name);
-    }
-
-    async remove(location: string, name: string): Promise<void> {
-        const l = await this.getLocation(location);
-        l.delete(name);
-    }
-
-    async write(location: string, name: string, data: JsonObject): Promise<void> {
-        const l = await this.getLocation(location);
-        l.set(name, data);
-    }
-}
+import { TestStorage } from '../src/storage-adapters/TestStorage';
 
 describe('Collection.path', function () {
     it('should initialize path', function () {
@@ -316,7 +280,6 @@ describe('Collection find', function () {
         const c = new Collection('my_path', {
             ban: {
                 type: INDEX_TYPES.TRUTHY,
-                nullable: true,
             },
         });
         c.storage = new TestStorage();
@@ -338,7 +301,6 @@ describe('Collection find', function () {
         const c = new Collection('my_path', {
             ban: {
                 type: INDEX_TYPES.TRUTHY,
-                nullable: true,
             },
         });
         c.storage = new TestStorage();
@@ -365,7 +327,6 @@ describe('bug 2025-09-30', function () {
             },
             ban: {
                 type: INDEX_TYPES.TRUTHY,
-                nullable: true,
             },
         });
         c.storage = new TestStorage();
@@ -426,5 +387,150 @@ describe('bug 2025-09-30', function () {
         });
         const x2 = await c.find({ name: 'alice' });
         expect(x2.count).toBe(1);
+    });
+
+    describe('when using operator greaterThan', () => {
+        it('should find documents with age 56 and 1024 when searching values of age greater than 50', async () => {
+            const c = new Collection('my_path', {
+                age: {
+                    type: INDEX_TYPES.NUMERIC,
+                },
+            });
+            c.storage = new TestStorage();
+            await c.init();
+            await c.save('1000', { id: 1000, name: 'alice', age: 25 });
+            await c.save('1010', { id: 1010, name: 'bob', age: 29 });
+            await c.save('1015', { id: 1015, name: 'charlie', age: 20 });
+            await c.save('1020', { id: 1020, name: 'debora', age: 56 });
+            await c.save('1030', { id: 1030, name: 'eliza', age: 18 });
+            await c.save('1040', { id: 1040, name: 'felix', age: 1024 });
+            const elders = await c.find({ age: { $gt: 50 } });
+            expect(elders.count).toBe(2);
+            const a = await elders.fetchAll();
+            const b = a.map((e) => e.age);
+            expect(b.length).toBe(2);
+            expect(b.includes(56)).toBe(true);
+            expect(b.includes(1024)).toBe(true);
+        });
+        it('should exclude 50 when using a numeric index with precision 10', async () => {
+            const c = new Collection('my_path', {
+                age: {
+                    type: INDEX_TYPES.NUMERIC,
+                    precision: 10,
+                },
+            });
+            c.storage = new TestStorage();
+            await c.init();
+            await c.save('1000', { id: 1000, name: 'alice', age: 47 });
+            await c.save('1010', { id: 1010, name: 'bob', age: 48 });
+            await c.save('1015', { id: 1015, name: 'charlie', age: 49 });
+            await c.save('1020', { id: 1020, name: 'debora', age: 50 }); // <- should not be count
+            await c.save('1030', { id: 1030, name: 'eliza', age: 51 });
+            await c.save('1040', { id: 1040, name: 'felix', age: 52 });
+            const elders = await c.find({ age: { $gt: 50 } });
+            expect(elders.count).toBe(2);
+            const a = await elders.fetchAll();
+            const b = a.map((e) => e.name);
+            expect(b.length).toBe(2);
+            expect(b.includes('eliza')).toBe(true); // age 51
+            expect(b.includes('felix')).toBe(true); // age 52
+        });
+    });
+
+    describe('when using operator lesserThan', () => {
+        it('should find documents with age 25, 29, 20, 18 when searching values of age lesser than 50', async () => {
+            const c = new Collection('my_path', {
+                age: {
+                    type: INDEX_TYPES.NUMERIC,
+                },
+            });
+            c.storage = new TestStorage();
+            await c.init();
+            await c.save('1000', { id: 1000, name: 'alice', age: 25 });
+            await c.save('1010', { id: 1010, name: 'bob', age: 29 });
+            await c.save('1015', { id: 1015, name: 'charlie', age: 20 });
+            await c.save('1020', { id: 1020, name: 'debora', age: 56 });
+            await c.save('1030', { id: 1030, name: 'eliza', age: 18 });
+            await c.save('1040', { id: 1040, name: 'felix', age: 1024 });
+            const elders = await c.find({ age: { $lt: 50 } });
+            expect(elders.count).toBe(4);
+            const a = await elders.fetchAll();
+            const b = a.map((e) => e.age);
+            expect(b.length).toBe(4);
+            expect(b.includes(25)).toBe(true);
+            expect(b.includes(29)).toBe(true);
+            expect(b.includes(20)).toBe(true);
+            expect(b.includes(18)).toBe(true);
+        });
+        it('should exclude 51 when using a numeric index with precision 10', async () => {
+            const c = new Collection('my_path', {
+                age: {
+                    type: INDEX_TYPES.NUMERIC,
+                    precision: 10,
+                },
+            });
+            c.storage = new TestStorage();
+            await c.init();
+            await c.save('1000', { id: 1000, name: 'alice', age: 47 });
+            await c.save('1010', { id: 1010, name: 'bob', age: 48 });
+            await c.save('1015', { id: 1015, name: 'charlie', age: 49 });
+            await c.save('1020', { id: 1020, name: 'debora', age: 50 }); // <- should not be count
+            await c.save('1030', { id: 1030, name: 'eliza', age: 51 });
+            await c.save('1040', { id: 1040, name: 'felix', age: 52 });
+            await c.save('1060', { id: 1040, name: 'felix', age: 60 });
+            const elders = await c.find({ age: { $lt: 51 } });
+            expect(elders.count).toBe(4); // 47, 48, 49, 50
+            const a = await elders.fetchAll();
+            const b = a.map((e) => e.name);
+            expect(b.length).toBe(4);
+            expect(b.includes('alice')).toBe(true); // age 47
+            expect(b.includes('bob')).toBe(true); // age 48
+            expect(b.includes('charlie')).toBe(true); // age 49
+            expect(b.includes('debora')).toBe(true); // age 50
+        });
+    });
+
+    describe('when using a combination of lte and gte to get an inclusive range', () => {
+        it('should find documents with age between  25 & 60', async () => {
+            const c = new Collection('my_path', {
+                age: {
+                    type: INDEX_TYPES.NUMERIC,
+                    precision: 10,
+                },
+            });
+            c.storage = new TestStorage();
+            await c.init();
+            await c.save('1000', { id: 1000, name: 'alice', age: 25 });
+            await c.save('1010', { id: 1010, name: 'bob', age: 29 });
+            await c.save('1015', { id: 1015, name: 'charlie', age: 20 });
+            await c.save('1020', { id: 1020, name: 'debora', age: 56 });
+            await c.save('1030', { id: 1030, name: 'eliza', age: 18 });
+            await c.save('1040', { id: 1040, name: 'felix', age: 1024 });
+            const searched = await c.find({ age: { $gte: 25, $lt: 60 } });
+            const a = await searched.fetchAll();
+            expect(a).toEqual([
+                { id: 1000, name: 'alice', age: 25 },
+                { id: 1010, name: 'bob', age: 29 },
+                { id: 1020, name: 'debora', age: 56 },
+            ]);
+        });
+        it('should find documents with age between  25 & 60 when using no index', async () => {
+            const c = new Collection('my_path', {});
+            c.storage = new TestStorage();
+            await c.init();
+            await c.save('1000', { id: 1000, name: 'alice', age: 25 });
+            await c.save('1010', { id: 1010, name: 'bob', age: 29 });
+            await c.save('1015', { id: 1015, name: 'charlie', age: 20 });
+            await c.save('1020', { id: 1020, name: 'debora', age: 56 });
+            await c.save('1030', { id: 1030, name: 'eliza', age: 18 });
+            await c.save('1040', { id: 1040, name: 'felix', age: 1024 });
+            const searched = await c.find({ age: { $gte: 25, $lt: 60 } });
+            const a = await searched.fetchAll();
+            expect(a).toEqual([
+                { id: 1000, name: 'alice', age: 25 },
+                { id: 1010, name: 'bob', age: 29 },
+                { id: 1020, name: 'debora', age: 56 },
+            ]);
+        });
     });
 });

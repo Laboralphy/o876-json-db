@@ -1,7 +1,10 @@
 import { IPropertyIndex } from '../interfaces/IPropertyIndex';
+import { sortMap } from '../sort-map';
+import { ScalarValue } from '../types';
 
-export abstract class ReducedIndex<T, K, X> implements IPropertyIndex<T, K> {
+export abstract class ReducedIndex<T, K, X extends ScalarValue> implements IPropertyIndex<T, K, X> {
     protected propertyIndex: Map<X, Set<K>>;
+    protected sorted: boolean = false;
 
     constructor() {
         this.propertyIndex = new Map(); // to get all primary keys to documents whose property as a given value
@@ -11,6 +14,7 @@ export abstract class ReducedIndex<T, K, X> implements IPropertyIndex<T, K> {
         const reducedValue = this.reduceValue(value);
         if (!this.propertyIndex.has(reducedValue)) {
             this.propertyIndex.set(reducedValue, new Set());
+            this.sorted = false; // ordered list must be rebuilt
         }
         this.propertyIndex.get(reducedValue)!.add(primaryKey);
     }
@@ -26,6 +30,7 @@ export abstract class ReducedIndex<T, K, X> implements IPropertyIndex<T, K> {
             keys.delete(primaryKey);
             if (keys.size === 0) {
                 this.propertyIndex.delete(reducedValue);
+                this.sorted = false; // ordered list must be rebuilt
             }
         }
     }
@@ -36,7 +41,14 @@ export abstract class ReducedIndex<T, K, X> implements IPropertyIndex<T, K> {
 
     clear(): void {
         this.propertyIndex.clear();
+        this.sorted = false; // ordered list must be rebuilt
     }
 
-    protected abstract reduceValue(value: T): X;
+    abstract reduceValue(value: T): X;
+
+    getIndexList(): Map<X, Set<K>> {
+        this.propertyIndex = sortMap(this.propertyIndex);
+        this.sorted = true;
+        return this.propertyIndex;
+    }
 }
