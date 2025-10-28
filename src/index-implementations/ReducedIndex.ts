@@ -1,7 +1,7 @@
 import { IPropertyIndex } from '../interfaces/IPropertyIndex';
 
 export abstract class ReducedIndex<T, K, X> implements IPropertyIndex<T, K> {
-    private propertyIndex: Map<X, Set<K>>;
+    protected propertyIndex: Map<X, Set<K>>;
 
     constructor() {
         this.propertyIndex = new Map(); // to get all primary keys to documents whose property as a given value
