@@ -48,5 +48,5 @@ export interface IPropertyIndex<T, K, X extends ScalarValue> {
      * (some index are not ordered by design like Hash index)
      * @return an ordered list of index
      */
-    getIndexList(): Map<X, Set<K>>;
+    getIndexMap(): Map<X, Set<K>>;
 }

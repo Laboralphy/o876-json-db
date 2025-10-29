@@ -2,7 +2,6 @@
   "name": "o876-json-db",
   "version": "1.5.0",
   "description": "",
-  "type": "module",
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
@@ -14,7 +13,6 @@
     "@types/benchmark": "^2.1.5",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.3.0",
-    "benchmark": "^2.1.4",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",

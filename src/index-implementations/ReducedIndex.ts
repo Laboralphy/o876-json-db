@@ -46,7 +46,7 @@ export abstract class ReducedIndex<T, K, X extends ScalarValue> implements IProp
 
     abstract reduceValue(value: T): X;
 
-    getIndexList(): Map<X, Set<K>> {
+    getIndexMap(): Map<X, Set<K>> {
         this.propertyIndex = sortMap(this.propertyIndex);
         this.sorted = true;
         return this.propertyIndex;

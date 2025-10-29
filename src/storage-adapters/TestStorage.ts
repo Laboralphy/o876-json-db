@@ -13,10 +13,12 @@ export class TestStorage implements IStorage {
         return this.#latency;
     }
 
-    randomPause() {
-        return new Promise((resolve) => {
-            setTimeout(resolve, Math.random() * this.#latency);
-        });
+    async randomPause() {
+        if (Math.random() > 0.95) {
+            return new Promise((resolve) => {
+                setTimeout(resolve, this.#latency);
+            });
+        }
     }
 
     async createLocation(location: string): Promise<void> {

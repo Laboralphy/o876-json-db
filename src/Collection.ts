@@ -10,6 +10,7 @@ import { comparator } from './comparator';
 import { empty } from './operators/empty';
 import { greaterThan } from './operators/greater-than';
 import { lesserThan } from './operators/lesser-than';
+import { applyOnBunchOfDocs } from './operators/includes/apply-bunch-of-docs';
 
 export type IndexCreationOptions = {
     type: INDEX_TYPES;
@@ -81,14 +82,9 @@ export class Collection implements ILoader {
         const bFullScan = keys == undefined;
         const aKeys = bFullScan ? this.keys : keys;
 
-        const aOkKeys: string[] = [];
-        for (const key of aKeys) {
-            const oDocument = await this.load(key);
-            if (oDocument && pFunction(oDocument, key)) {
-                aOkKeys.push(key);
-            }
-        }
-        return aOkKeys;
+        const aValidKeys = new Set<string>();
+        await applyOnBunchOfDocs(aKeys, this, aValidKeys, pFunction);
+        return [...aValidKeys];
     }
 
     /**

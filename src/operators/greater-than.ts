@@ -1,6 +1,7 @@
 import { Collection } from '../Collection';
 import { JsonObject } from '../types/Json';
 import { comparator } from '../comparator';
+import { applyOnBunchOfDocs } from './includes/apply-bunch-of-docs';
 
 export async function greaterThan(
     collection: Collection,
@@ -13,24 +14,20 @@ export async function greaterThan(
         const greaterKeys = new Set<string>(
             collection.indexManager.getGreaterIndexKeys(sPropName, operand) ?? []
         );
-        for (const key of borderKeys) {
-            const doc = await collection.load(key);
-            if (doc !== undefined) {
-                const v = doc[sPropName] ?? null;
-                if (typeof v === 'string' || typeof v === 'number') {
-                    const bOk = orEqual ? comparator(v, operand) >= 0 : comparator(v, operand) > 0;
-                    if (doc && bOk) {
-                        greaterKeys.add(key);
-                    }
-                }
+        await applyOnBunchOfDocs(borderKeys, collection, greaterKeys, (doc) => {
+            const v = doc[sPropName];
+            if (typeof v === 'string' || typeof v === 'number') {
+                return orEqual ? v >= operand : v > operand;
+            } else {
+                return false;
             }
-        }
+        });
         return [...greaterKeys];
     } else {
         return collection.filter((data: JsonObject) => {
             const d = data[sPropName];
             if (typeof d === 'string' || typeof d === 'number') {
-                return orEqual ? comparator(d, operand) >= 0 : comparator(d, operand) > 0;
+                return orEqual ? d >= operand : d > operand;
             } else {
                 return false;
             }

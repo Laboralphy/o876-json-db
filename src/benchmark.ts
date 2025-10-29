@@ -3,11 +3,6 @@ import { Collection } from './Collection';
 import { INDEX_TYPES } from './enums';
 import { TestStorage } from './storage-adapters/TestStorage';
 
-interface MyTestProcess {
-    prepare(): Promise<void>;
-    run(n: number): Promise<void>;
-}
-
 function getRandomLetter() {
     return String.fromCharCode(Math.floor(Math.random() * 26) + 65);
 }
@@ -42,6 +37,34 @@ function createRandomDocument(id: number | string) {
     };
 }
 
+function generateRealisticMessages(count: number) {
+    const authors = [
+        'Alice',
+        'Bob',
+        'Charlie',
+        'Dave',
+        'Eliza',
+        'Fabrice',
+        'Gwladys',
+        'Henry',
+        'Isabelle',
+    ];
+    const messages = [];
+    for (let i = 0; i < count; i++) {
+        const date = new Date('2025-10-31 12:00:00');
+        date.setDate(date.getDate() - Math.floor(i / 4)); // 4 messages/jour
+        messages.push({
+            id: `msg${i}`,
+            author: authors[i % authors.length],
+            dateCreation: date.getTime(),
+            subject: `Re: Project ${Math.floor(i / 100)}`,
+            body: `Message content ${i}...`, // + signature aléatoire
+            flag95: Math.random() > 0.7, // 30% non lus
+        });
+    }
+    return messages;
+}
+
 function createBunchOfDocuments(n: number) {
     const aDocuments = [];
     for (let i = 0; i < n; ++i) {
@@ -55,24 +78,28 @@ async function populateCollection(d: DocumentFormat[], c: Collection) {
     return Promise.all(d.map((doc) => c.save(doc.id, doc)));
 }
 
-class TestProcess1 implements MyTestProcess {
-    #documents: DocumentFormat[] = [];
+class TestProcess1 {
+    #documents: any[] = [];
     #cNonIndexed: Collection = new Collection('my_path', {});
     #cIndexed: Collection = new Collection('my_path', {
         dateCreation: {
             type: INDEX_TYPES.NUMERIC,
             precision: 1000 * 3600 * 24,
         },
+        author: {
+            type: INDEX_TYPES.PARTIAL,
+            size: 4,
+        },
     });
 
-    async prepare(): Promise<void> {
-        this.#documents = createBunchOfDocuments(200);
+    async prepare(n: number, l: number): Promise<void> {
+        this.#documents = generateRealisticMessages(n);
         const ts1 = new TestStorage();
         await ts1.createLocation('my_path');
-        ts1.latency = 8;
+        ts1.latency = l;
         const ts2 = new TestStorage();
         await ts2.createLocation('my_path');
-        ts2.latency = 8;
+        ts2.latency = l;
         this.#cNonIndexed.storage = ts1;
         this.#cIndexed.storage = ts2;
         await this.#cNonIndexed.init();
@@ -85,47 +112,47 @@ class TestProcess1 implements MyTestProcess {
      * find with a non indexed collection
      */
     async run1(): Promise<void> {
-        await this.#cNonIndexed.find({ dateCreation: { $gte: 1761668387470 - 2592000000 } });
+        const d = new Date('2025-09-29 12:00:00');
+        await this.#cNonIndexed.find({ dateCreation: { $gte: d.getDate() } });
     }
 
     /**
      * find with an indexed collection
      */
     async run2(): Promise<void> {
-        await this.#cIndexed.find({ dateCreation: { $gte: 1761668387470 - 2592000000 } });
-    }
-
-    async run(n: 1 | 2): Promise<void> {
-        switch (n) {
-            case 1: {
-                return this.run1();
-            }
-            case 2: {
-                return this.run2();
-            }
-            default: {
-                break;
-            }
-        }
+        const d = new Date('2025-09-29 12:00:00');
+        await this.#cIndexed.find({ dateCreation: { $gte: d.getDate() } });
     }
 }
 
+async function testOneShot() {
+    const DOCUMENT_COUNT = 50000;
+    const LATENCY = 8;
+
+    const p = new TestProcess1();
+    await p.prepare(DOCUMENT_COUNT, LATENCY);
+    await p.run1();
+}
+
 async function main() {
+    const DOCUMENT_COUNT = 10000;
+    const LATENCY = 8;
+
     const suite = new Bench({
-        name: 'index vs non index for find 2000 document by date',
-        time: 1000,
+        name: `index vs non index for find ${DOCUMENT_COUNT} document by date with latency ${LATENCY}`,
+        time: 20000,
     });
     const p = new TestProcess1();
-    await p.prepare();
+    await p.prepare(DOCUMENT_COUNT, LATENCY);
 
-    suite.add('non indexed 2000 docs', async () => {
+    suite.add(`non indexed`, async () => {
         {
-            await p.run(1);
+            await p.run1();
         }
     });
-    suite.add('indexed 2000 docs', async () => {
+    suite.add(`indexed`, async () => {
         {
-            await p.run(2);
+            await p.run2();
         }
     });
 
@@ -135,3 +162,4 @@ async function main() {
 }
 
 main().then(() => console.log('done'));
+// testOneShot().then(() => console.log('done'));

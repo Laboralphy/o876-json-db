@@ -428,7 +428,7 @@ export class IndexManager {
                     // index number registry found : check value type : must be number
                     if (typeof value === 'number') {
                         // let the comparator function have the last word
-                        return comparatorFunction(oIndex.reduceValue(value), oIndex.getIndexList());
+                        return comparatorFunction(oIndex.reduceValue(value), oIndex.getIndexMap());
                     } else {
                         // wrong type of value : throw error
                         throw new TypeError(
@@ -449,7 +449,7 @@ export class IndexManager {
                     // index number registry found : check value type : must be string
                     if (typeof value === 'string') {
                         // let the comparator function have the last word
-                        return comparatorFunction(oIndex.reduceValue(value), oIndex.getIndexList());
+                        return comparatorFunction(oIndex.reduceValue(value), oIndex.getIndexMap());
                     } else {
                         // wrong type of value : throw error
                         throw new TypeError(
@@ -466,15 +466,39 @@ export class IndexManager {
         return undefined; // index registry was not found
     }
 
+    dichotomicalSearch<T extends ScalarValue>(aArray: T[], value: T): number {
+        let iLeft = 0;
+        let iRight = aArray.length - 1;
+
+        while (iLeft <= iRight) {
+            const iMid = Math.floor((iLeft + iRight) / 2);
+
+            if (aArray[iMid] === value) {
+                return iMid; // Valeur trouvée, retourne l'index
+            } else if (comparator(aArray[iMid], value) < 0) {
+                iLeft = iMid + 1;
+            } else {
+                iRight = iMid - 1;
+            }
+        }
+        return iLeft;
+    }
+
     getGreaterIndexKeys(indexName: string, value: JsonValue): string[] | undefined {
         const f = <T extends ScalarValue>(vcomp: T, map: Map<T, Set<string>>) => {
             const m = new Set<string>();
             if (vcomp === null) {
                 return [];
             }
+            let bAdd = false;
             for (const [v, k] of map.entries()) {
-                if (v !== null && comparator(v, vcomp) > 0) {
-                    [...k.values()].forEach((x) => m.add(x));
+                if (!bAdd && comparator(v, vcomp) > 0) {
+                    bAdd = true;
+                }
+                if (bAdd) {
+                    for (const x of k) {
+                        m.add(x);
+                    }
                 }
             }
             return [...m];
@@ -489,8 +513,12 @@ export class IndexManager {
                 return [];
             }
             for (const [v, k] of map.entries()) {
-                if (v !== null && comparator(v, vcomp) < 0) {
-                    [...k.values()].forEach((x) => m.add(x));
+                if (comparator(v, vcomp) < 0) {
+                    for (const x of k) {
+                        m.add(x);
+                    }
+                } else {
+                    break;
                 }
             }
             return [...m];
