@@ -22,19 +22,38 @@ export class Collection implements ILoader {
     private _keys = new Set<string>();
     private _bInit = false;
 
+    /**
+     * The constructor requires a path (for file system storage)
+     * @param _path collection path (see .path)
+     * @param _indexOptions index options
+     */
     constructor(
         private readonly _path: string,
         private readonly _indexOptions: { [indexName: string]: IndexCreationOptions } = {}
     ) {}
 
+    /**
+     * Returns the collection path (for collection using file system storage)
+     * The collection path is the folder where all documents of the collection are stored.
+     */
     get path(): string {
         return this._path;
     }
 
+    /**
+     * Define collection storage, use it before .init
+     * You must create an instance of a class implementing the interface IStorage
+     * @example collection.storage = new MemoryStorage()
+     * @example collection.storage = new DiskStorage()
+     * @param value
+     */
     set storage(value: IStorage) {
         this._storage = value;
     }
 
+    /**
+     * Gets the storage instance previously sets with get storage
+     */
     get storage(): IStorage {
         if (!this._storage) {
             throw new Error(
@@ -43,18 +62,34 @@ export class Collection implements ILoader {
         }
         return this._storage;
     }
+
+    /**
+     * Returns the name of the collection (infered by the path)
+     */
     get name() {
         return this._path.replace(/\\/g, '/').split('/').pop();
     }
 
+    /**
+     * Returns a list of all documents keys of this collection
+     */
     get keys(): string[] {
         return [...this._keys];
     }
 
+    /**
+     * Returns the index manager instance
+     */
     get indexManager(): IndexManager {
         return this._indexManager;
     }
 
+    /**
+     * Initialize the collection by performing these actions
+     * - Create storage location (for FS storage)
+     * - Builds a list of document keys
+     * - Build a document index
+     */
     async init() {
         if (this._bInit) {
             throw new Error(`collection ${this._path} already initialized.`);
@@ -187,11 +222,18 @@ export class Collection implements ILoader {
         this._keys.delete(key);
     }
 
+    /**
+     * Evaluate an operator against all document of the collection
+     * @param sPropName
+     * @param propValue
+     */
     async evaluateOperator(
         sPropName: string,
         propValue: FieldValue
     ): Promise<string[] | undefined> {
         if (propValue instanceof RegExp) {
+            // property value is RegExp
+            // scans all document and try to match
             return this.filter((data) => {
                 if (typeof data[sPropName] == 'string') {
                     const r = data[sPropName].match(propValue);
@@ -205,6 +247,8 @@ export class Collection implements ILoader {
             propValue !== null &&
             !Array.isArray(propValue)
         ) {
+            // property value is an object but not an array
+            // try to evaluate operator
             let bFirst = true;
             let result = new Set<string>();
             for (const [operator, operand] of Object.entries(propValue)) {
@@ -325,6 +369,11 @@ export class Collection implements ILoader {
         return new Set([...targetSet].filter((element) => filterSet.has(element)));
     }
 
+    /**
+     * Find documents using a query languege similar of mongo
+     * @param oQuery query langage :
+     * @example .find({ name: { $gte: 'M' }}
+     */
     async find(oQuery: QueryObject): Promise<Cursor> {
         const indexedClauseMap = new Map<string, FieldValue>();
         const nonIndexedClauseMap = new Map<string, FieldValue>();

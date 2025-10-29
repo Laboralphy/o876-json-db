@@ -1,6 +1,4 @@
 import { Collection } from '../src/Collection';
-import { IStorage } from '../src/interfaces/IStorage';
-import { JsonObject } from '../src/types/Json';
 import { INDEX_TYPES } from '../src/enums';
 import { TestStorage } from '../src/storage-adapters/TestStorage';
 
