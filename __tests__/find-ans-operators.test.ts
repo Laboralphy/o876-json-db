@@ -194,7 +194,7 @@ const DB = {
     },
 };
 
-describe('test1', () => {
+describe('multiple conditions', () => {
     let oCharacters: Collection;
     beforeEach(async () => {
         oCharacters = new Collection('soiaf_characters', {
@@ -232,5 +232,32 @@ describe('test1', () => {
         expect(r.find((x) => x.name === 'Catelyn')).toBeDefined();
         expect(r).toHaveLength(2);
         expect(c.keys.includes('p0001')).toBeTruthy();
+    });
+
+    it('should throw an error when mistyping "location"', async () => {
+        await expect(async () => {
+            const c = await oCharacters.find({ location: 24, age: { $gt: 50 } });
+            const r = await c.fetchAll();
+        }).rejects.toThrow(
+            new TypeError('location requires that indexed value is of type string : number given')
+        );
+    });
+    it('should throw an error when mistyping operand of $gt', async () => {
+        await expect(async () => {
+            const c = await oCharacters.find({ location: 'Winterfell', age: { $gt: 'abc' } });
+            const r = await c.fetchAll();
+        }).rejects.toThrow(
+            new TypeError('age requires that indexed value is of type number : string given')
+        );
+    });
+    it('should loads 2 documents only when querying an indexed property', async () => {
+        const c = await oCharacters.find({ age: { $gt: 50 } });
+        expect(oCharacters.stats.loads).toBe(2);
+    });
+    it('should reset stats when findings 2 queries', async () => {
+        const c1 = await oCharacters.find({ age: { $gte: 18 } });
+        expect(oCharacters.stats.loads).toBe(8);
+        const c2 = await oCharacters.find({ age: { $gt: 50 } });
+        expect(oCharacters.stats.loads).toBe(2);
     });
 });

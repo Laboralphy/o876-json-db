@@ -7,16 +7,20 @@ export async function applyOnBunchOfDocs(
     keys: string[],
     collection: Collection,
     validKeys: Set<string>,
-    f: (document: JsonObject, key: string) => boolean
+    f: (document: JsonObject, key: string, index: number) => boolean
 ): Promise<void> {
-    for (let i = 0; i < keys.length; i += BUNCH_SIZE) {
+    const kl = keys.length;
+    let nIndex = 0;
+    for (let i = 0; i < kl; i += BUNCH_SIZE) {
         const bunchOfKeys = keys.slice(i, i + BUNCH_SIZE);
         const bunchOfDocuments = await Promise.all(bunchOfKeys.map((key) => collection.load(key)));
-        for (let j = 0; j < bunchOfDocuments.length; ++j) {
+        const bl = bunchOfDocuments.length;
+        for (let j = 0; j < bl; ++j) {
             const document = bunchOfDocuments[j];
-            if (document && f(document, bunchOfKeys[j])) {
+            if (document && f(document, bunchOfKeys[j], nIndex)) {
                 validKeys.add(bunchOfKeys[j]);
             }
+            ++nIndex;
         }
     }
 }

@@ -21,6 +21,9 @@ export class Collection implements ILoader {
     private _storage: IStorage | undefined;
     private _keys = new Set<string>();
     private _bInit = false;
+    private _stats = {
+        loads: 0,
+    };
 
     /**
      * The constructor requires a path (for file system storage)
@@ -31,6 +34,10 @@ export class Collection implements ILoader {
         private readonly _path: string,
         private readonly _indexOptions: { [indexName: string]: IndexCreationOptions } = {}
     ) {}
+
+    get stats(): { loads: number } {
+        return this._stats;
+    }
 
     /**
      * Returns the collection path (for collection using file system storage)
@@ -111,7 +118,7 @@ export class Collection implements ILoader {
      * @private
      */
     async filter(
-        pFunction: (data: JsonObject, key: string) => boolean,
+        pFunction: (data: JsonObject, key: string, index: number) => boolean,
         keys?: string[] | undefined
     ): Promise<string[]> {
         const bFullScan = keys == undefined;
@@ -183,7 +190,7 @@ export class Collection implements ILoader {
      */
     private async indexAllDocuments(): Promise<void> {
         this._indexManager.clearAll();
-        await this.filter((data: JsonObject, key: string) => {
+        await this.filter((data: JsonObject, key: string, index: number) => {
             this._indexManager.indexDocument(key, data);
             return false;
         });
@@ -208,6 +215,7 @@ export class Collection implements ILoader {
      */
     async load(key: string): Promise<JsonObject | undefined> {
         this._checkKey(key);
+        ++this._stats.loads;
         return this.storage.read(this._path, key);
     }
 
@@ -375,6 +383,7 @@ export class Collection implements ILoader {
      * @example .find({ name: { $gte: 'M' }}
      */
     async find(oQuery: QueryObject): Promise<Cursor> {
+        this._stats.loads = 0;
         const indexedClauseMap = new Map<string, FieldValue>();
         const nonIndexedClauseMap = new Map<string, FieldValue>();
         // dispatch query properties between indexed and non-indexed
