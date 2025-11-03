@@ -14,7 +14,7 @@ export class NumericIndex extends ReducedIndex<number, string, number> {
         super();
     }
 
-    protected reduceValue(value: number): number {
+    reduceValue(value: number): number {
         return Math.floor(value / this._precision);
     }
 }

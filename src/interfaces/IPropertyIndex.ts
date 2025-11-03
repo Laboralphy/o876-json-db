@@ -1,7 +1,9 @@
+import { ScalarValue } from '../types';
+
 /**
  * Those classes will index all values of a property, associating value to primary-key
  */
-export interface IPropertyIndex<T, K> {
+export interface IPropertyIndex<T, K, X extends ScalarValue> {
     /**
      * Adds an entry in index.
      * The given value is associated with the given primary key
@@ -34,4 +36,17 @@ export interface IPropertyIndex<T, K> {
      * Removes all indexed values
      */
     clear(): void;
+
+    /**
+     * Reduce a value before storing it as an index.
+     * @param value
+     */
+    reduceValue(value: T): X;
+
+    /**
+     * Returns an ordered list of reduced index if possible
+     * (some index are not ordered by design like Hash index)
+     * @return an ordered list of index
+     */
+    getIndexMap(): Map<X, Set<K>>;
 }

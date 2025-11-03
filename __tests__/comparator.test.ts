@@ -1,6 +1,13 @@
 import { comparator } from '../src/comparator'; // Ajuste le chemin selon ton projet
 
 describe('comparator', () => {
+    test('should return greater than 0 when a > b', () => {
+        expect(comparator(10, 5)).toBeGreaterThan(0);
+    });
+    test('should return lesser than 0 when a < b', () => {
+        expect(comparator(5, 10)).toBeLessThan(0);
+    });
+
     // null est toujours inférieur aux autres types
     test('null < false', () => {
         expect(comparator(null, false)).toBe(-1);

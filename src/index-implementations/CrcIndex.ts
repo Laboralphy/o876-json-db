@@ -20,7 +20,7 @@ export class CrcIndex extends ReducedIndex<string, string, string> {
         }
     }
 
-    protected reduceValue(value: string) {
+    reduceValue(value: string) {
         if (this._caseInsensitive) {
             value = normalizeString(value);
         }

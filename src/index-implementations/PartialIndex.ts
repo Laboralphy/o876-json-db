@@ -19,7 +19,7 @@ export class PartialIndex extends ReducedIndex<string, string, string> {
         super();
     }
 
-    protected reduceValue(value: string): string {
+    reduceValue(value: string): string {
         const sSub = this._size > 0 ? value.substring(0, this._size) : value;
         return this._caseInsensitive ? normalizeString(sSub) : sSub;
     }

@@ -8,6 +8,9 @@ import { Cursor } from './Cursor';
 import { ILoader } from './interfaces/ILoader';
 import { comparator } from './comparator';
 import { empty } from './operators/empty';
+import { greaterThan } from './operators/greater-than';
+import { lesserThan } from './operators/lesser-than';
+import { applyOnBunchOfDocs } from './operators/includes/apply-bunch-of-docs';
 
 export type IndexCreationOptions = {
     type: INDEX_TYPES;
@@ -18,20 +21,46 @@ export class Collection implements ILoader {
     private _storage: IStorage | undefined;
     private _keys = new Set<string>();
     private _bInit = false;
+    private _stats = {
+        loads: 0,
+    };
 
+    /**
+     * The constructor requires a path (for file system storage)
+     * @param _path collection path (see .path)
+     * @param _indexOptions index options
+     */
     constructor(
         private readonly _path: string,
         private readonly _indexOptions: { [indexName: string]: IndexCreationOptions } = {}
     ) {}
 
+    get stats(): { loads: number } {
+        return this._stats;
+    }
+
+    /**
+     * Returns the collection path (for collection using file system storage)
+     * The collection path is the folder where all documents of the collection are stored.
+     */
     get path(): string {
         return this._path;
     }
 
+    /**
+     * Define collection storage, use it before .init
+     * You must create an instance of a class implementing the interface IStorage
+     * @example collection.storage = new MemoryStorage()
+     * @example collection.storage = new DiskStorage()
+     * @param value
+     */
     set storage(value: IStorage) {
         this._storage = value;
     }
 
+    /**
+     * Gets the storage instance previously sets with get storage
+     */
     get storage(): IStorage {
         if (!this._storage) {
             throw new Error(
@@ -40,18 +69,34 @@ export class Collection implements ILoader {
         }
         return this._storage;
     }
+
+    /**
+     * Returns the name of the collection (infered by the path)
+     */
     get name() {
         return this._path.replace(/\\/g, '/').split('/').pop();
     }
 
+    /**
+     * Returns a list of all documents keys of this collection
+     */
     get keys(): string[] {
         return [...this._keys];
     }
 
+    /**
+     * Returns the index manager instance
+     */
     get indexManager(): IndexManager {
         return this._indexManager;
     }
 
+    /**
+     * Initialize the collection by performing these actions
+     * - Create storage location (for FS storage)
+     * - Builds a list of document keys
+     * - Build a document index
+     */
     async init() {
         if (this._bInit) {
             throw new Error(`collection ${this._path} already initialized.`);
@@ -73,20 +118,15 @@ export class Collection implements ILoader {
      * @private
      */
     async filter(
-        pFunction: (data: JsonObject, key: string) => boolean,
+        pFunction: (data: JsonObject, key: string, index: number) => boolean,
         keys?: string[] | undefined
     ): Promise<string[]> {
         const bFullScan = keys == undefined;
         const aKeys = bFullScan ? this.keys : keys;
 
-        const aOkKeys: string[] = [];
-        for (const key of aKeys) {
-            const oDocument = await this.load(key);
-            if (oDocument && pFunction(oDocument, key)) {
-                aOkKeys.push(key);
-            }
-        }
-        return aOkKeys;
+        const aValidKeys = new Set<string>();
+        await applyOnBunchOfDocs(aKeys, this, aValidKeys, pFunction);
+        return [...aValidKeys];
     }
 
     /**
@@ -150,7 +190,7 @@ export class Collection implements ILoader {
      */
     private async indexAllDocuments(): Promise<void> {
         this._indexManager.clearAll();
-        await this.filter((data: JsonObject, key: string) => {
+        await this.filter((data: JsonObject, key: string, index: number) => {
             this._indexManager.indexDocument(key, data);
             return false;
         });
@@ -175,6 +215,7 @@ export class Collection implements ILoader {
      */
     async load(key: string): Promise<JsonObject | undefined> {
         this._checkKey(key);
+        ++this._stats.loads;
         return this.storage.read(this._path, key);
     }
 
@@ -189,11 +230,18 @@ export class Collection implements ILoader {
         this._keys.delete(key);
     }
 
+    /**
+     * Evaluate an operator against all document of the collection
+     * @param sPropName
+     * @param propValue
+     */
     async evaluateOperator(
         sPropName: string,
         propValue: FieldValue
     ): Promise<string[] | undefined> {
         if (propValue instanceof RegExp) {
+            // property value is RegExp
+            // scans all document and try to match
             return this.filter((data) => {
                 if (typeof data[sPropName] == 'string') {
                     const r = data[sPropName].match(propValue);
@@ -207,16 +255,71 @@ export class Collection implements ILoader {
             propValue !== null &&
             !Array.isArray(propValue)
         ) {
-            const [operator, operand] = Object.entries(propValue).shift() ?? ['', null];
-            switch (operator) {
-                case '$empty': {
-                    if (typeof operand == 'boolean') {
-                        return empty(this, sPropName, operand);
-                    } else {
-                        throw new TypeError(`Unexpected operand type for operator '${operator}'`);
+            // property value is an object but not an array
+            // try to evaluate operator
+            let bFirst = true;
+            let result = new Set<string>();
+            for (const [operator, operand] of Object.entries(propValue)) {
+                switch (operator) {
+                    case '$empty': {
+                        if (typeof operand == 'boolean') {
+                            const k = new Set(await empty(this, sPropName, operand));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected boolean, got ${typeof operand}`
+                            );
+                        }
+                        break;
+                    }
+                    case '$gt': {
+                        if (typeof operand == 'string' || typeof operand === 'number') {
+                            const k = new Set(await greaterThan(this, sPropName, operand));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
+                            );
+                        }
+                        break;
+                    }
+                    case '$lt': {
+                        if (typeof operand == 'string' || typeof operand === 'number') {
+                            const k = new Set(await lesserThan(this, sPropName, operand));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
+                            );
+                        }
+                        break;
+                    }
+                    case '$gte': {
+                        if (typeof operand == 'string' || typeof operand === 'number') {
+                            const k = new Set(await greaterThan(this, sPropName, operand, true));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
+                            );
+                        }
+                        break;
+                    }
+                    case '$lte': {
+                        if (typeof operand == 'string' || typeof operand === 'number') {
+                            const k = new Set(await lesserThan(this, sPropName, operand, true));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
+                            );
+                        }
+                        break;
                     }
                 }
+                bFirst = false;
             }
+            return [...result];
         }
         return undefined;
     }
@@ -274,7 +377,13 @@ export class Collection implements ILoader {
         return new Set([...targetSet].filter((element) => filterSet.has(element)));
     }
 
+    /**
+     * Find documents using a query languege similar of mongo
+     * @param oQuery query langage :
+     * @example .find({ name: { $gte: 'M' }}
+     */
     async find(oQuery: QueryObject): Promise<Cursor> {
+        this._stats.loads = 0;
         const indexedClauseMap = new Map<string, FieldValue>();
         const nonIndexedClauseMap = new Map<string, FieldValue>();
         // dispatch query properties between indexed and non-indexed

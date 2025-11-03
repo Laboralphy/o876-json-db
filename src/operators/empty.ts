@@ -1,7 +1,11 @@
 import { Collection } from '../Collection';
 import { JsonObject } from '../types/Json';
 
-export function empty(collection: Collection, sPropName: string, operand: boolean) {
+export async function empty(
+    collection: Collection,
+    sPropName: string,
+    operand: boolean
+): Promise<string[]> {
     if (collection.indexManager.isIndexed(sPropName)) {
         return collection.indexManager.getIndexedKeys(sPropName, !operand) ?? [];
     } else {
