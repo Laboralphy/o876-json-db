@@ -270,8 +270,7 @@ export class IndexManager {
 
                 case INDEX_TYPES.BOOLEAN: {
                     if (dataValue === undefined || dataValue === null) {
-                        // We don't want null or undefined value
-                        // We will support this in a future version
+                        // We don't want null or undefined value for a boolean
                         throw new TypeError(
                             `null or undefined values are unsupported for boolean index : property ${indexName}`
                         );

@@ -260,4 +260,33 @@ describe('multiple conditions', () => {
         const c2 = await oCharacters.find({ age: { $gt: 50 } });
         expect(oCharacters.stats.loads).toBe(2);
     });
+    it('should return male character of lannister when asking', async () => {
+        const c = await oCharacters.find({ familyName: 'Lannister', gender: 'male' });
+        expect(c.count).toBe(2);
+        const r = await c.fetchAll();
+        expect(r[0].name).toBe('Lannister');
+        expect(r[1].name).toBe('Lannister');
+        expect(r[0].gender).toBe('male');
+        expect(r[1].gender).toBe('male');
+    });
+});
+
+describe('dealing with null', () => {
+    it('should accept null values', async () => {
+        const oDB = new Collection('test1', {
+            dateRead: {
+                type: INDEX_TYPES.NUMERIC,
+            },
+        });
+        oDB.storage = new TestStorage();
+        await oDB.init();
+        await oDB.save('f1', {
+            message: 'm1',
+            dateRead: Date.now(),
+        });
+        await oDB.save('f2', {
+            message: 'm2',
+            dateRead: null,
+        });
+    });
 });
