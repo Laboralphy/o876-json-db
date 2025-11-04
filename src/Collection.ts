@@ -7,22 +7,35 @@ import { FieldValue, QueryObject } from './types/QueryObject';
 import { Cursor } from './Cursor';
 import { ILoader } from './interfaces/ILoader';
 import { comparator } from './comparator';
-import { empty } from './operators/empty';
 import { greaterThan } from './operators/greater-than';
 import { lesserThan } from './operators/lesser-than';
 import { applyOnBunchOfDocs } from './operators/includes/apply-bunch-of-docs';
+import { equal } from './operators/equal';
+import { notEqual } from './operators/not-equal';
 
 export type IndexCreationOptions = {
     type: INDEX_TYPES;
 } & IndexCommonOptions;
+
+export type CollectionStat = {
+    loads: number;
+    indexes: string[];
+    nonIndexes: string[];
+    microtime: number;
+    indexLog: { property: string; loads: number }[];
+};
 
 export class Collection implements ILoader {
     private _indexManager = new IndexManager();
     private _storage: IStorage | undefined;
     private _keys = new Set<string>();
     private _bInit = false;
-    private _stats = {
+    private _stats: CollectionStat = {
         loads: 0,
+        indexes: [],
+        nonIndexes: [],
+        microtime: 0,
+        indexLog: [],
     };
 
     /**
@@ -261,13 +274,32 @@ export class Collection implements ILoader {
             let result = new Set<string>();
             for (const [operator, operand] of Object.entries(propValue)) {
                 switch (operator) {
-                    case '$empty': {
-                        if (typeof operand == 'boolean') {
-                            const k = new Set(await empty(this, sPropName, operand));
+                    case '$eq': {
+                        if (
+                            operand === null ||
+                            typeof operand == 'string' ||
+                            typeof operand === 'number'
+                        ) {
+                            const k = new Set(await equal(this, sPropName, operand));
                             result = bFirst ? k : this.intersection(k, result);
                         } else {
                             throw new TypeError(
-                                `Unexpected operand type for operator '${operator}' expected boolean, got ${typeof operand}`
+                                `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
+                            );
+                        }
+                        break;
+                    }
+                    case '$neq': {
+                        if (
+                            operand === null ||
+                            typeof operand == 'string' ||
+                            typeof operand === 'number'
+                        ) {
+                            const k = new Set(await notEqual(this, sPropName, operand));
+                            result = bFirst ? k : this.intersection(k, result);
+                        } else {
+                            throw new TypeError(
+                                `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
                             );
                         }
                         break;
@@ -337,6 +369,10 @@ export class Collection implements ILoader {
         ) {
             const aKeys = this._indexManager.getIndexedKeys(sPropName, propValue) ?? [];
             const options = this._indexManager.getIndexOptions(sPropName);
+            const bExactIndex = this._indexManager.isExactIndex(sPropName);
+            if (bExactIndex) {
+                return aKeys;
+            }
             return this.filter((data) => {
                 if (
                     typeof data[sPropName] === 'number' ||
@@ -383,20 +419,29 @@ export class Collection implements ILoader {
      * @example .find({ name: { $gte: 'M' }}
      */
     async find(oQuery: QueryObject): Promise<Cursor> {
-        this._stats.loads = 0;
+        const s = this._stats;
+        s.loads = 0;
+        s.indexes = [];
+        s.nonIndexes = [];
+        s.indexLog = [];
+        const hrTime = process.hrtime();
         const indexedClauseMap = new Map<string, FieldValue>();
         const nonIndexedClauseMap = new Map<string, FieldValue>();
         // dispatch query properties between indexed and non-indexed
         for (const [fieldName, fieldValue] of Object.entries(oQuery)) {
             if (this._indexManager.isIndexed(fieldName)) {
                 indexedClauseMap.set(fieldName, fieldValue);
+                s.indexes.push(fieldName);
             } else {
                 nonIndexedClauseMap.set(fieldName, fieldValue);
+                s.nonIndexes.push(fieldName);
             }
         }
         // indexed clauses process
         let foundKeys = new Set<string>();
         let bFoundKeyUninitialized = true;
+        const sil = s.indexLog;
+        let sumIndexLoads = 0;
         if (indexedClauseMap.size > 0) {
             for (const [propName, value] of indexedClauseMap.entries()) {
                 // propName is a real name of an indexed property
@@ -410,6 +455,9 @@ export class Collection implements ILoader {
                 } else {
                     foundKeys = this.intersection(foundKeys, new Set(fk));
                 }
+                const currentLoads = s.loads - sumIndexLoads;
+                sil.push({ property: propName, loads: currentLoads });
+                sumIndexLoads += currentLoads;
             }
         }
         if (nonIndexedClauseMap.size > 0) {
@@ -425,6 +473,9 @@ export class Collection implements ILoader {
                 }
             }
         }
-        return new Cursor(Array.from(foundKeys), this);
+        const cursor = new Cursor(Array.from(foundKeys), this);
+        const [nSec, nNanoSec] = process.hrtime(hrTime);
+        this._stats.microtime = nSec * 1000000 + nNanoSec / 1000;
+        return cursor;
     }
 }

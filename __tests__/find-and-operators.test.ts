@@ -264,8 +264,8 @@ describe('multiple conditions', () => {
         const c = await oCharacters.find({ familyName: 'Lannister', gender: 'male' });
         expect(c.count).toBe(2);
         const r = await c.fetchAll();
-        expect(r[0].name).toBe('Lannister');
-        expect(r[1].name).toBe('Lannister');
+        expect(r[0].name).toBe('Tyrion');
+        expect(r[1].name).toBe('Jaime');
         expect(r[0].gender).toBe('male');
         expect(r[1].gender).toBe('male');
     });
@@ -276,6 +276,7 @@ describe('dealing with null', () => {
         const oDB = new Collection('test1', {
             dateRead: {
                 type: INDEX_TYPES.NUMERIC,
+                nullable: true,
             },
         });
         oDB.storage = new TestStorage();
@@ -288,5 +289,10 @@ describe('dealing with null', () => {
             message: 'm2',
             dateRead: null,
         });
+        // Two messages have been posted, one with date defined, one with date null
+        const c1 = await oDB.find({ dateRead: null });
+        expect(c1.keys).toEqual(['f2']);
+        const c2 = await oDB.find({ dateRead: { $neq: null } });
+        expect(c2.keys).toEqual(['f1']);
     });
 });

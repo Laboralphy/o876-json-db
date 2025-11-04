@@ -11,13 +11,16 @@ export async function lesserThan(
 ) {
     if (collection.indexManager.isIndexed(sPropName)) {
         const borderKeys = collection.indexManager.getIndexedKeys(sPropName, operand) ?? [];
+        const bCaseInsensitive = collection.indexManager.getIndexOptions(sPropName).caseInsensitive;
         const lesserKeys = new Set<string>(
             collection.indexManager.getLesserIndexKeys(sPropName, operand) ?? []
         );
         await applyOnBunchOfDocs(borderKeys, collection, lesserKeys, (doc) => {
             const v = doc[sPropName];
-            if (typeof v === 'string' || typeof v === 'number') {
-                return orEqual ? v <= operand : v < operand;
+            if (v === null || typeof v === 'string' || typeof v === 'number') {
+                return orEqual
+                    ? comparator(v, operand, bCaseInsensitive) >= 0
+                    : comparator(v, operand, bCaseInsensitive) < 0;
             } else {
                 return false;
             }
@@ -26,8 +29,8 @@ export async function lesserThan(
     } else {
         return collection.filter((data: JsonObject) => {
             const d = data[sPropName];
-            if (typeof d === 'string' || typeof d === 'number') {
-                return orEqual ? d <= operand : d < operand;
+            if (d === null || typeof d === 'string' || typeof d === 'number') {
+                return orEqual ? comparator(d, operand) <= 0 : comparator(d, operand) < 0;
             } else {
                 return false;
             }

@@ -10,27 +10,27 @@ export interface IPropertyIndex<T, K, X extends ScalarValue> {
      * @param value Value to be indexed
      * @param primaryKey Primary key
      */
-    add(value: T, primaryKey: K): void;
+    add(value: T | null, primaryKey: K): void;
 
     /**
      * Returns all primary keys associate with a given value.
      * @param value Searched value
      * @returns Array of primary keys (empty if none matching)
      */
-    get(value: T): K[];
+    get(value: T | null): K[];
 
     /**
      * Dissociates a primary key from a value
      * @param value Value
      * @param primaryKey Primary key to remove
      */
-    remove(value: T, primaryKey: K): void;
+    remove(value: T | null, primaryKey: K): void;
 
     /**
      * Checks if this value has been indexed.
      * @param value Value to check
      */
-    has(value: T): boolean;
+    has(value: T | null): boolean;
 
     /**
      * Removes all indexed values
@@ -49,4 +49,9 @@ export interface IPropertyIndex<T, K, X extends ScalarValue> {
      * @return an ordered list of index
      */
     getIndexMap(): Map<X, Set<K>>;
+
+    /**
+     * Returns true when this index
+     */
+    get isExact(): boolean;
 }

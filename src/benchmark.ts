@@ -37,29 +37,34 @@ function createRandomDocument(id: number | string) {
     };
 }
 
+const AUTHORS = [
+    'Alice',
+    'Bob',
+    'Charlie',
+    'Dave',
+    'Eliza',
+    'Fabrice',
+    'Gwendolyn',
+    'Henry',
+    'Isabelle',
+    'Johanna',
+];
+
 function generateRealisticMessages(count: number) {
-    const authors = [
-        'Alice',
-        'Bob',
-        'Charlie',
-        'Dave',
-        'Eliza',
-        'Fabrice',
-        'Gwladys',
-        'Henry',
-        'Isabelle',
-    ];
+    const authors = AUTHORS;
     const messages = [];
+    const dateNow = new Date('2025-10-31 12:00:00');
     for (let i = 0; i < count; i++) {
-        const date = new Date('2025-10-31 12:00:00');
+        const date = new Date(dateNow.getTime());
         date.setDate(date.getDate() - Math.floor(i / 4)); // 4 messages/jour
+
         messages.push({
             id: `msg${i}`,
             author: authors[i % authors.length],
             dateCreation: date.getTime(),
             subject: `Re: Project ${Math.floor(i / 100)}`,
             body: `Message content ${i}...`, // + signature aléatoire
-            flag95: Math.random() > 0.7, // 30% non lus
+            read: Math.random() > 0.7, // 70% non lus
         });
     }
     return messages;
@@ -88,9 +93,20 @@ class TestProcess1 {
         },
         author: {
             type: INDEX_TYPES.PARTIAL,
-            size: 4,
+            size: 0,
+            caseInsensitive: true,
+        },
+        read: {
+            type: INDEX_TYPES.BOOLEAN,
         },
     });
+
+    get collections() {
+        return {
+            indexed: this.#cIndexed,
+            nonIndexed: this.#cNonIndexed,
+        };
+    }
 
     async prepare(n: number, l: number): Promise<void> {
         this.#documents = generateRealisticMessages(n);
@@ -111,7 +127,7 @@ class TestProcess1 {
     /**
      * find with a non indexed collection
      */
-    async run1(): Promise<void> {
+    async qGetMessageFrom09_29_NonIndex(): Promise<void> {
         const d = new Date('2025-09-29 12:00:00');
         await this.#cNonIndexed.find({ dateCreation: { $gte: d.getDate() } });
     }
@@ -119,46 +135,61 @@ class TestProcess1 {
     /**
      * find with an indexed collection
      */
-    async run2(): Promise<void> {
+    async qGetMessageFrom09_29_Index(): Promise<void> {
         const d = new Date('2025-09-29 12:00:00');
         await this.#cIndexed.find({ dateCreation: { $gte: d.getDate() } });
     }
-}
 
-async function testOneShot() {
-    const DOCUMENT_COUNT = 50000;
-    const LATENCY = 8;
+    async qGetMessageMultiUser_last30days_NonIndex(): Promise<void> {
+        const d = new Date('2025-09-29 12:00:00');
+        await this.#cNonIndexed.find({
+            author: 'Eliza',
+            dateCreation: { $gte: d.getDate() },
+            read: false,
+        });
+    }
 
-    const p = new TestProcess1();
-    await p.prepare(DOCUMENT_COUNT, LATENCY);
-    await p.run1();
+    async qGetMessageMultiUser_last30days_Index(): Promise<void> {
+        const d = new Date('2025-09-29 12:00:00');
+        await this.#cIndexed.find({
+            author: 'Eliza',
+            dateCreation: { $gte: d.getDate() },
+            read: false,
+        });
+    }
 }
 
 async function main() {
-    const DOCUMENT_COUNT = 10000;
+    const DOCUMENT_COUNT = 7000;
     const LATENCY = 8;
 
     const suite = new Bench({
-        name: `index vs non index for find ${DOCUMENT_COUNT} document by date with latency ${LATENCY}`,
-        time: 20000,
+        name: `find ${DOCUMENT_COUNT} document by date with latency ${LATENCY}`,
+        time: 10000,
     });
     const p = new TestProcess1();
     await p.prepare(DOCUMENT_COUNT, LATENCY);
 
-    suite.add(`non indexed`, async () => {
+    suite.add(`one numeric search opt`, async () => {
         {
-            await p.run1();
+            await p.qGetMessageFrom09_29_Index();
         }
     });
-    suite.add(`indexed`, async () => {
+    suite.add(`3 search opt, date, name, read`, async () => {
         {
-            await p.run2();
+            await p.qGetMessageMultiUser_last30days_Index();
         }
     });
 
     await suite.run();
     console.log(suite.name);
     console.table(suite.table());
+
+    // await p.qGetMessageFrom09_29_Index();
+    // console.log(p.collections.indexed.stats);
+    //
+    // await p.qGetMessageMultiUser_last30days_Index();
+    // console.log(p.collections.indexed.stats);
 }
 
 main().then(() => console.log('done'));

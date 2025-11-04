@@ -3,34 +3,29 @@ import { JsonObject } from '../types/Json';
 import { comparator } from '../comparator';
 import { applyOnBunchOfDocs } from './includes/apply-bunch-of-docs';
 
-export async function greaterThan(
+export async function equal(
     collection: Collection,
     sPropName: string,
-    operand: string | number,
-    orEqual: boolean = false
+    operand: string | number | null
 ) {
     if (collection.indexManager.isIndexed(sPropName)) {
         const borderKeys = collection.indexManager.getIndexedKeys(sPropName, operand) ?? [];
         const bCaseInsensitive = collection.indexManager.getIndexOptions(sPropName).caseInsensitive;
-        const greaterKeys = new Set<string>(
-            collection.indexManager.getGreaterIndexKeys(sPropName, operand) ?? []
-        );
-        await applyOnBunchOfDocs(borderKeys, collection, greaterKeys, (doc) => {
+        const equalKeys = new Set<string>();
+        await applyOnBunchOfDocs(borderKeys, collection, equalKeys, (doc) => {
             const v = doc[sPropName];
             if (v === null || typeof v === 'string' || typeof v === 'number') {
-                return orEqual
-                    ? comparator(v, operand, bCaseInsensitive) >= 0
-                    : comparator(v, operand, bCaseInsensitive) > 0;
+                return comparator(v, operand, bCaseInsensitive) == 0;
             } else {
                 return false;
             }
         });
-        return [...greaterKeys];
+        return [...equalKeys];
     } else {
         return collection.filter((data: JsonObject) => {
             const d = data[sPropName];
             if (d === null || typeof d === 'string' || typeof d === 'number') {
-                return orEqual ? comparator(d, operand) >= 0 : comparator(d, operand) > 0;
+                return comparator(d, operand) == 0;
             } else {
                 return false;
             }
