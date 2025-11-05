@@ -5,7 +5,7 @@ import { ILoader } from './interfaces/ILoader';
  * With a list of identifier and an instance of ILoader, the cursor class
  * can lazy load document using old methods first, last, next, prev etc...
  */
-export class Cursor {
+export class Cursor<T extends JsonObject> {
     private _index: number = 0;
     private _current: JsonObject | undefined = undefined;
 
@@ -44,7 +44,7 @@ export class Cursor {
     /**
      * get the current record
      */
-    async current(): Promise<JsonObject | undefined> {
+    async current(): Promise<T | undefined> {
         const sCurrentKey = this.currentKey;
         if (sCurrentKey === undefined) {
             return undefined;
@@ -52,25 +52,25 @@ export class Cursor {
         if (!this._current) {
             this._current = await this._collection.load(sCurrentKey);
         }
-        return this._current;
+        return this._current as T;
     }
 
-    first(): Promise<JsonObject | undefined> {
+    first(): Promise<T | undefined> {
         this.index = 0;
         return this.current();
     }
 
-    last(): Promise<JsonObject | undefined> {
+    last(): Promise<T | undefined> {
         this.index = this.count - 1;
         return this.current();
     }
 
-    next(): Promise<JsonObject | undefined> {
+    next(): Promise<T | undefined> {
         ++this.index;
         return this.current();
     }
 
-    previous(): Promise<JsonObject | undefined> {
+    previous(): Promise<T | undefined> {
         --this.index;
         return this.current();
     }
@@ -82,7 +82,7 @@ export class Cursor {
     /**
      * Returns an array with all loaded items
      */
-    async fetchAll<T extends JsonObject>(nStart: number = 0, nEnd?: number): Promise<T[]> {
+    async fetchAll(nStart: number = 0, nEnd?: number): Promise<T[]> {
         if (nEnd === undefined) {
             nEnd = this.count - nStart;
         }
@@ -92,7 +92,7 @@ export class Cursor {
         return aDocuments.filter((document) => document !== undefined) as T[];
     }
 
-    merge(oCursor: Cursor) {
+    merge(oCursor: Cursor<T>) {
         const aKeySet = new Set([...this._keys, ...oCursor.keys]);
         this._keys = [...aKeySet];
     }

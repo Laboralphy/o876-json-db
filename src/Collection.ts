@@ -423,7 +423,7 @@ export class Collection implements ILoader {
      * @param oQuery query langage :
      * @example .find({ name: { $gte: 'M' }}
      */
-    async find(oQuery: QueryObject): Promise<Cursor> {
+    async find<T extends JsonObject>(oQuery: QueryObject): Promise<Cursor<T>> {
         const s = this._stats;
         s.loads = 0;
         s.indexes = [];
@@ -478,7 +478,7 @@ export class Collection implements ILoader {
                 }
             }
         }
-        const cursor = new Cursor(Array.from(foundKeys), this);
+        const cursor = new Cursor<T>(Array.from(foundKeys), this);
         const [nSec, nNanoSec] = process.hrtime(hrTime);
         this._stats.microtime = nSec * 1000000 + nNanoSec / 1000;
         return cursor;

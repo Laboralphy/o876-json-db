@@ -1,7 +1,7 @@
-export type UserInbox = {
-    id: string;
-    userId: string;
+export type MailInbox = {
     messageId: string;
+    tag: number;
+    userId: string;
     tsReceived: number;
     deleted: boolean;
     kept: boolean;

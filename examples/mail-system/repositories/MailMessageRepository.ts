@@ -1,12 +1,12 @@
 import { Collection } from '../../../src/Collection';
 import { INDEX_TYPES } from '../../../src/enums';
 import { generateUID } from '../libs/uid-generator';
-import { Message } from '../entities/Message';
+import { MailMessage } from '../entities/MailMessage';
 import { TestStorage } from '../../../src/storage-adapters/TestStorage';
 
-export class MessageRepository {
-    #collection: Collection = new Collection('message', {
-        authorId: {
+export class MailMessageRepository {
+    #collection: Collection = new Collection('mail-messages', {
+        senderId: {
             type: INDEX_TYPES.PARTIAL,
             size: 0,
             caseInsensitive: true,
@@ -16,6 +16,7 @@ export class MessageRepository {
             precision: 24 * 3600 * 1000,
         },
     });
+
     constructor() {
         const storage = new TestStorage();
         storage.latency = 8;
@@ -26,12 +27,22 @@ export class MessageRepository {
         return this.#collection.init();
     }
 
-    async postMessage(m: Message, date: Date) {
-        const message: Message = {
+    async getMessage(id: string): Promise<MailMessage | undefined> {
+        return this.#collection.load(id);
+    }
+
+    async postMessage(
+        senderId: string,
+        recipientIds: string[],
+        content: string,
+        timestamp: number
+    ) {
+        const message: MailMessage = {
             id: generateUID(),
-            authorId: m.authorId,
-            content: m.content,
-            tsCreation: date.getTime(),
+            senderId,
+            recipientIds,
+            content,
+            tsCreation: timestamp,
         };
         if (this.#collection.keys.includes(message.id)) {
             throw new ReferenceError(`this message id already exist ${message.id}`);
