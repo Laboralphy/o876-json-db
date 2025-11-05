@@ -82,14 +82,14 @@ export class Cursor {
     /**
      * Returns an array with all loaded items
      */
-    async fetchAll(nStart: number = 0, nEnd?: number): Promise<JsonObject[]> {
+    async fetchAll<T extends JsonObject>(nStart: number = 0, nEnd?: number): Promise<T[]> {
         if (nEnd === undefined) {
             nEnd = this.count - nStart;
         }
         const aDocuments = await Promise.all(
             this._keys.slice(nStart, nEnd).map((k) => this._collection.load(k))
         );
-        return aDocuments.filter((document) => document !== undefined);
+        return aDocuments.filter((document) => document !== undefined) as T[];
     }
 
     merge(oCursor: Cursor) {

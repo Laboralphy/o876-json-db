@@ -218,25 +218,30 @@ export class Collection implements ILoader {
         this._checkKey(key);
         await this.unindexDocument(key);
         await this.storage.write(this._path, key, oDocument);
-        this._indexManager.indexDocument(key, oDocument);
         this._keys.add(key);
+        this._indexManager.indexDocument(key, oDocument);
     }
 
     /**
      * Read a document from storage and return its content
      * @param key document primary key
      */
-    async load(key: string): Promise<JsonObject | undefined> {
+    async load<T extends JsonObject>(key: string): Promise<T | undefined> {
         this._checkKey(key);
         ++this._stats.loads;
-        return this.storage.read(this._path, key);
+        const document = await this.storage.read(this._path, key);
+        if (document !== undefined) {
+            return document as T;
+        } else {
+            return undefined;
+        }
     }
 
     /**
      * Remove a document from the storage
      * @param key document primary key
      */
-    async remove(key: string) {
+    async delete(key: string) {
         this._checkKey(key);
         await this.unindexDocument(key);
         await this.storage.remove(this._path, key);
