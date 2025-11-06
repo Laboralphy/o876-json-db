@@ -1,5 +1,16 @@
 import { MailMessageRepository } from '../repositories/MailMessageRepository';
 import { MailInboxRepository } from '../repositories/MailInboxRepository';
+import {MailInbox} from "../entities/MailInbox";
+import {asyncWrapProviders} from "node:async_hooks";
+
+export type UserInboxResult = {
+    tag: number;
+    sender: string;
+    message: string;
+    date: number;
+    read: boolean;
+    kept: boolean;
+}
 
 export class MailManager {
     private _messageRepository: MailMessageRepository;
@@ -21,13 +32,13 @@ export class MailManager {
     }
 
     /**
-     * Writes a new message for one or more users
+     * Writes a new message and sends it to one or more users
      * @param content message content
      * @param fromUserId sender id
      * @param toUserIds recipient id list
      * @param nNow current timestamp
      */
-    async writeMessage(content: string, fromUserId: string, toUserIds: string[], nNow: number) {
+    async sendMessage(content: string, fromUserId: string, toUserIds: string[], nNow: number) {
         // send message to MailMessage collection
         const message = await this._messageRepository.postMessage(
             fromUserId,
@@ -45,6 +56,21 @@ export class MailManager {
      * @param userId
      */
     async checkUserInbox(userId: string) {
-        return this._inboxRepository.checkInbox(userId);
+        const aInbox = await this._inboxRepository.checkInbox(userId);
+        for (const mib of )
+        const result: UserInboxResult[] = aInbox.map((mib) => {
+            const message =
+            return {
+                tag: mib.tag,
+                sender: mib.
+            }
+        })
     }
+
+    /**
+     * The specified user is reading the specified message
+     * @param userId
+     * @param messageId
+     */
+    async readMessage(userId: string, messageId: string) {}
 }

@@ -107,7 +107,7 @@ describe('writeMessage', () => {
             messageRepository: new MailMessageRepository(),
         });
         await mm.init();
-        await mm.writeMessage('new message content', 'u1', ['u3'], 1762356958130);
+        await mm.sendMessage('new message content', 'u1', ['u3'], 1762356958130);
         const mibu3 = await mm.checkUserInbox('u3');
         expect(mibu3.length).toBe(1);
         expect(mibu3[0].tag).toBe(1);
@@ -125,7 +125,7 @@ describe('writeMessage', () => {
             messageRepository: new MailMessageRepository(),
         });
         await mm.init();
-        await mm.writeMessage('new message content', 'u1', ['u3', 'u4'], 1762356958130);
+        await mm.sendMessage('new message content', 'u1', ['u3', 'u4'], 1762356958130);
         const mibu3 = await mm.checkUserInbox('u3');
         expect(mibu3.length).toBe(1);
         expect(mibu3[0].tag).toBe(1);

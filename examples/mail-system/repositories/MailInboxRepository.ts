@@ -37,6 +37,10 @@ export class MailInboxRepository {
         this.#collection.storage = storage;
     }
 
+    getKey(userId: string, messageId: string) {
+        return userId + '-' + messageId;
+    }
+
     init() {
         return this.#collection.init();
     }
@@ -58,9 +62,10 @@ export class MailInboxRepository {
         const aUntagged = aInbox.filter((mib) => mib.tag == 0);
         // Tags all untagged inbox entries with auto incremental tag
         for (const m of aUntagged) {
+            const mibId = this.getKey(userId, m.messageId);
             m.tag = ++nMaxTag;
             // save those newly tagged inbox entries
-            await this.#collection.save(m.messageId, m);
+            await this.#collection.save(mibId, m);
         }
         return aInbox.sort((a, b) => {
             if (a.kept == b.kept) {
@@ -84,31 +89,35 @@ export class MailInboxRepository {
             kept: false,
             read: false,
         };
-        return this.#collection.save(userId + '-' + entry.messageId, entry);
+        return this.#collection.save(this.getKey(userId, entry.messageId), entry);
     }
 
     /**
      * Marks a message as deleted but do not remove it from collection yet
+     * @param userId
      * @param messageId
      */
-    async deleteMessage(messageId: string) {
-        const mib: MailInbox | undefined = await this.#collection.load(messageId);
+    async deleteMessage(userId: string, messageId: string) {
+        const mibId = this.getKey(userId, messageId);
+        const mib: MailInbox | undefined = await this.#collection.load(mibId);
         if (mib) {
             mib.deleted = true;
             mib.kept = false;
-            return this.#collection.save(mib.messageId, mib);
+            return this.#collection.save(mibId, mib);
         }
     }
 
     /**
      * Marks a message as read
+     * @param userId
      * @param messageId
      */
-    async readMessage(messageId: string) {
-        const mib: MailInbox | undefined = await this.#collection.load(messageId);
+    async readMessage(userId: string, messageId: string) {
+        const mibId = this.getKey(userId, messageId);
+        const mib: MailInbox | undefined = await this.#collection.load(mibId);
         if (mib) {
             mib.read = true;
-            return this.#collection.save(mib.messageId, mib);
+            return this.#collection.save(mibId, mib);
         }
     }
 }
