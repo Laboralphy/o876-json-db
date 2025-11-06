@@ -1,7 +1,7 @@
 import { MailMessageRepository } from '../repositories/MailMessageRepository';
 import { MailInboxRepository } from '../repositories/MailInboxRepository';
-import {MailInbox} from "../entities/MailInbox";
-import {asyncWrapProviders} from "node:async_hooks";
+import { MailInbox } from '../entities/MailInbox';
+import { asyncWrapProviders } from 'node:async_hooks';
 
 export type UserInboxResult = {
     tag: number;
@@ -10,7 +10,7 @@ export type UserInboxResult = {
     date: number;
     read: boolean;
     kept: boolean;
-}
+};
 
 export class MailManager {
     private _messageRepository: MailMessageRepository;
@@ -57,14 +57,6 @@ export class MailManager {
      */
     async checkUserInbox(userId: string) {
         const aInbox = await this._inboxRepository.checkInbox(userId);
-        for (const mib of )
-        const result: UserInboxResult[] = aInbox.map((mib) => {
-            const message =
-            return {
-                tag: mib.tag,
-                sender: mib.
-            }
-        })
     }
 
     /**
