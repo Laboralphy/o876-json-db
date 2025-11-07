@@ -45,6 +45,22 @@ export class MailInboxRepository {
         return this.#collection.init();
     }
 
+    getMinimalMissingValue(aValues: number[], minValue = 1) {
+        const aSortedValues = [
+            ...new Set(aValues.filter((x) => Number.isInteger(x) && x >= minValue)),
+        ].sort((a, b) => a - b);
+        if (aSortedValues.length == 0) {
+            return minValue;
+        }
+        let nExpectedValue = minValue;
+        for (let i = 0, l = aSortedValues.length; i < l; ++i) {
+            if (aSortedValues[i] > nExpectedValue) {
+                return nExpectedValue;
+            }
+            ++nExpectedValue;
+        }
+    }
+
     /**
      * Checks all messages in inbox, tags all untagged messages (and updates them), sorts messages
      * @param userId

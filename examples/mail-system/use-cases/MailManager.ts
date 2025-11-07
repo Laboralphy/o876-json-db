@@ -1,9 +1,8 @@
 import { MailMessageRepository } from '../repositories/MailMessageRepository';
 import { MailInboxRepository } from '../repositories/MailInboxRepository';
-import { MailInbox } from '../entities/MailInbox';
-import { asyncWrapProviders } from 'node:async_hooks';
 
 export type UserInboxResult = {
+    id: string;
     tag: number;
     sender: string;
     message: string;
@@ -62,6 +61,7 @@ export class MailManager {
             const message = await this._messageRepository.getMessage(mib.messageId);
             if (message) {
                 result.push({
+                    id: mib.messageId,
                     tag: mib.tag,
                     sender: message.senderId,
                     timestamp: message.tsCreation,
@@ -89,7 +89,7 @@ export class MailManager {
         if (message) {
             return message;
         } else {
-            // The message could not be found (may be archived)
+            // The message could not be found (maybe archived)
             // remove mail inbox entry
             await this._inboxRepository.deleteMessage(userId, messageId, true);
             return undefined;

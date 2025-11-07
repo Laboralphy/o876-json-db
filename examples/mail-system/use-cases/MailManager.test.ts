@@ -140,3 +140,45 @@ describe('writeMessage', () => {
         expect(mibu4[0].timestamp).toBe(1762356958130);
     });
 });
+
+describe('getMinimalMissingValue', () => {
+    describe('when input is empty', () => {
+        it('should return 1 when minValue is not specified', () => {
+            const mr = new MailInboxRepository();
+            expect(mr.getMinimalMissingValue([])).toBe(1);
+        });
+        it('should return 100 when input is [] and minValue is 100', () => {
+            const mr = new MailInboxRepository();
+            expect(mr.getMinimalMissingValue([], 100)).toBe(100);
+        });
+        it('should return -100 when minValue is -100', () => {
+            const mr = new MailInboxRepository();
+            expect(mr.getMinimalMissingValue([], -100)).toBe(-100);
+        });
+    });
+    describe('when input is empty', () => {
+        it('should return 1 when input is [2, 3, 4, 5]', () => {
+            const mr = new MailInboxRepository();
+            expect(mr.getMinimalMissingValue([2, 3, 4, 5])).toBe(1);
+        });
+        it('should return 10 when input is [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14]', () => {
+            const mr = new MailInboxRepository();
+            expect(mr.getMinimalMissingValue([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14])).toBe(1);
+        });
+    });
+});
+
+describe('readMessage', () => {
+    it('should mark return', async () => {
+        const mm = new MailManager({
+            inboxRepository: new MailInboxRepository(),
+            messageRepository: new MailMessageRepository(),
+        });
+        await mm.init();
+        await mm.sendMessage('new message content', 'u1', ['u3', 'u4'], 1762356958130);
+        const mib = await mm.checkUserInbox('u3');
+        expect(mib.length).toBe(1);
+        const msgId = mib[0].id;
+        // const m = mm.readMessage('u3');
+    });
+});
