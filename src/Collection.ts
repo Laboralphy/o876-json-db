@@ -214,7 +214,7 @@ export class Collection implements ILoader {
      * @param key document primary key
      * @param oDocument document content
      */
-    async save(key: string, oDocument: JsonObject) {
+    async save<T extends JsonObject>(key: string, oDocument: T) {
         this._checkKey(key);
         await this.unindexDocument(key);
         await this.storage.write(this._path, key, oDocument);

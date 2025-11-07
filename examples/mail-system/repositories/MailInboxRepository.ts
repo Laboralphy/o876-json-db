@@ -52,7 +52,7 @@ export class MailInboxRepository {
      */
     async checkInbox(userId: string) {
         // get all users inbox entries
-        const aInboxCursor = await this.#collection.find<MailInbox>({ userId });
+        const aInboxCursor = await this.#collection.find<MailInbox>({ userId, deleted: false });
         const aInbox = await aInboxCursor.fetchAll();
         // get the maximum value of tag
         let nMaxTag = aInbox.reduce((acc, curr) => {
@@ -96,8 +96,9 @@ export class MailInboxRepository {
      * Marks a message as deleted but do not remove it from collection yet
      * @param userId
      * @param messageId
+     * @param purge remove physical this inbox entry (original message is gone)
      */
-    async deleteMessage(userId: string, messageId: string) {
+    async deleteMessage(userId: string, messageId: string, purge: boolean = false) {
         const mibId = this.getKey(userId, messageId);
         const mib: MailInbox | undefined = await this.#collection.load(mibId);
         if (mib) {
@@ -112,12 +113,15 @@ export class MailInboxRepository {
      * @param userId
      * @param messageId
      */
-    async readMessage(userId: string, messageId: string) {
+    async readMessage(userId: string, messageId: string): Promise<MailInbox> {
         const mibId = this.getKey(userId, messageId);
         const mib: MailInbox | undefined = await this.#collection.load(mibId);
         if (mib) {
             mib.read = true;
-            return this.#collection.save(mibId, mib);
+            await this.#collection.save(mibId, mib);
+            return mib;
+        } else {
+            throw new ReferenceError(`message ${messageId}, not found in user ${userId} inbox`);
         }
     }
 }

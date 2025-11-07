@@ -37,12 +37,11 @@ describe('checkUserInbox', () => {
         const mib = await mm.checkUserInbox('u3');
         expect(mib.length).toBe(1);
         expect(mib[0].tag).toBe(1);
-        expect(mib[0].userId).toBe('u3');
-        expect(mib[0].messageId).toBe(m.id);
+        expect(mib[0].sender).toBe('u2');
+        expect(mib[0].message).toBe('content of the message');
         expect(mib[0].kept).toBe(false);
         expect(mib[0].read).toBe(false);
-        expect(mib[0].deleted).toBe(false);
-        expect(mib[0].tsReceived).toBe(1762356958130);
+        expect(mib[0].timestamp).toBe(1762356958130);
     });
     it('should return inbox with one message when one message is written for each user inbox of [u3, u4]', async () => {
         const inboxRepository = new MailInboxRepository();
@@ -72,22 +71,20 @@ describe('checkUserInbox', () => {
         const mibu4 = await mm.checkUserInbox('u4');
         expect(mibu4.length).toBe(1);
         expect(mibu4[0].tag).toBe(1);
-        expect(mibu4[0].userId).toBe('u4');
-        expect(mibu4[0].messageId).toBe(m.id);
+        expect(mibu4[0].sender).toBe('u2');
+        expect(mibu4[0].message).toBe('content of the message');
         expect(mibu4[0].kept).toBe(false);
         expect(mibu4[0].read).toBe(false);
-        expect(mibu4[0].deleted).toBe(false);
-        expect(mibu4[0].tsReceived).toBe(1762356958130);
+        expect(mibu4[0].timestamp).toBe(1762356958130);
 
         const mibu3 = await mm.checkUserInbox('u3');
         expect(mibu3.length).toBe(1);
         expect(mibu3[0].tag).toBe(1);
-        expect(mibu3[0].userId).toBe('u3');
-        expect(mibu3[0].messageId).toBe(m.id);
+        expect(mibu3[0].sender).toBe('u2');
+        expect(mibu3[0].message).toBe('content of the message');
         expect(mibu3[0].kept).toBe(false);
         expect(mibu3[0].read).toBe(false);
-        expect(mibu3[0].deleted).toBe(false);
-        expect(mibu3[0].tsReceived).toBe(1762356958130);
+        expect(mibu3[0].timestamp).toBe(1762356958130);
     });
     it('should sort inbox message properly : kept message first then other messages', async () => {
         const inboxRepository = new MailInboxRepository();
@@ -111,11 +108,10 @@ describe('writeMessage', () => {
         const mibu3 = await mm.checkUserInbox('u3');
         expect(mibu3.length).toBe(1);
         expect(mibu3[0].tag).toBe(1);
-        expect(mibu3[0].userId).toBe('u3');
+        expect(mibu3[0].sender).toBe('u1');
         expect(mibu3[0].kept).toBe(false);
         expect(mibu3[0].read).toBe(false);
-        expect(mibu3[0].deleted).toBe(false);
-        expect(mibu3[0].tsReceived).toBe(1762356958130);
+        expect(mibu3[0].timestamp).toBe(1762356958130);
         const mib = await mm.checkUserInbox('u1');
         expect(mib).toEqual([]);
     });
@@ -129,19 +125,18 @@ describe('writeMessage', () => {
         const mibu3 = await mm.checkUserInbox('u3');
         expect(mibu3.length).toBe(1);
         expect(mibu3[0].tag).toBe(1);
-        expect(mibu3[0].userId).toBe('u3');
+        expect(mibu3[0].sender).toBe('u1');
+        expect(mibu3[0].message).toBe('new message content');
         expect(mibu3[0].kept).toBe(false);
         expect(mibu3[0].read).toBe(false);
-        expect(mibu3[0].deleted).toBe(false);
-        expect(mibu3[0].tsReceived).toBe(1762356958130);
+        expect(mibu3[0].timestamp).toBe(1762356958130);
 
         const mibu4 = await mm.checkUserInbox('u4');
         expect(mibu4.length).toBe(1);
         expect(mibu4[0].tag).toBe(1);
-        expect(mibu4[0].userId).toBe('u4');
+        expect(mibu4[0].sender).toBe('u1');
         expect(mibu4[0].kept).toBe(false);
         expect(mibu4[0].read).toBe(false);
-        expect(mibu4[0].deleted).toBe(false);
-        expect(mibu4[0].tsReceived).toBe(1762356958130);
+        expect(mibu4[0].timestamp).toBe(1762356958130);
     });
 });

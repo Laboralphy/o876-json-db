@@ -7,7 +7,7 @@ export type UserInboxResult = {
     tag: number;
     sender: string;
     message: string;
-    date: number;
+    timestamp: number;
     read: boolean;
     kept: boolean;
 };
@@ -57,6 +57,25 @@ export class MailManager {
      */
     async checkUserInbox(userId: string) {
         const aInbox = await this._inboxRepository.checkInbox(userId);
+        const result: UserInboxResult[] = [];
+        for (const mib of aInbox) {
+            const message = await this._messageRepository.getMessage(mib.messageId);
+            if (message) {
+                result.push({
+                    tag: mib.tag,
+                    sender: message.senderId,
+                    timestamp: message.tsCreation,
+                    message: message.content.substring(0, 64),
+                    kept: mib.kept,
+                    read: mib.read,
+                });
+            } else {
+                // could not find message, may be archived
+                // get rid of inbox entry
+                await this._inboxRepository.deleteMessage(mib.userId, mib.messageId, true);
+            }
+        }
+        return result;
     }
 
     /**
@@ -64,5 +83,16 @@ export class MailManager {
      * @param userId
      * @param messageId
      */
-    async readMessage(userId: string, messageId: string) {}
+    async readMessage(userId: string, messageId: string) {
+        const mib = await this._inboxRepository.readMessage(userId, messageId);
+        const message = await this._messageRepository.getMessage(mib.messageId);
+        if (message) {
+            return message;
+        } else {
+            // The message could not be found (may be archived)
+            // remove mail inbox entry
+            await this._inboxRepository.deleteMessage(userId, messageId, true);
+            return undefined;
+        }
+    }
 }
