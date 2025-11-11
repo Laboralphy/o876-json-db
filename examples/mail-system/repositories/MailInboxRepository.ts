@@ -72,11 +72,8 @@ export class MailInboxRepository {
      */
     async checkInbox(userId: string) {
         // get all users inbox entries
-        const aInboxCursor = await this.#collection.find({ userId, deleted: false });
+        const aInboxCursor = await this.#collection.find({ userId });
         const aInbox = await aInboxCursor.fetchAll();
-        if (aInbox.some((b) => b.deleted)) {
-            throw new Error('should not have deleted message');
-        }
         // get the maximum value of tag
         const aTags = aInbox.map((mib) => mib.tag);
         // Filter all untagged (0) inbox entries
@@ -84,18 +81,24 @@ export class MailInboxRepository {
         // Tags all untagged inbox entries with auto incremental tag
         for (const m of aUntagged) {
             const mibId = this.getKey(userId, m.messageId);
-            m.tag = this.getMinimalMissingValue(aTags, 1);
-            aTags.push(m.tag);
+            const nTag = this.getMinimalMissingValue(aTags, 1);
+            aTags.push(nTag);
             // save those newly tagged inbox entries
-            await this.#collection.save(mibId, m);
+            await this.#collection.save(mibId, {
+                ...m,
+                tag: nTag,
+            });
+            m.tag = nTag;
         }
-        return aInbox.sort((a, b) => {
-            if (a.kept == b.kept) {
-                return b.tsReceived - a.tsReceived;
-            } else {
-                return a.kept ? -1 : 1;
-            }
-        });
+        return aInbox
+            .filter((a) => !a.deleted)
+            .sort((a, b) => {
+                if (a.kept == b.kept) {
+                    return b.tsReceived - a.tsReceived;
+                } else {
+                    return a.kept ? -1 : 1;
+                }
+            });
     }
 
     /**

@@ -229,7 +229,7 @@ describe('mailinboxRepository.retagInbox', () => {
         const mib = await mr.checkInbox('u2');
         expect(mib.length).toBe(3);
     });
-    it('should retag', async () => {
+    it('delted message are not really deleted, they keep thier tag', async () => {
         const mr = new MailInboxRepository();
         await mr.init();
         await mr.receiveMessage('u2', 'm1', 1000000);
@@ -311,7 +311,7 @@ describe('mailinboxRepository.retagInbox', () => {
         expect(mib).toEqual([
             {
                 userId: 'u2',
-                tag: 2,
+                tag: 5,
                 messageId: 'm5',
                 tsReceived: 1000009,
                 deleted: false,
