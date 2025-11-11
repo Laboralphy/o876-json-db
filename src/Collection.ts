@@ -105,53 +105,13 @@ export class Collection<T extends JsonObject> implements ILoader {
     }
 
     /**
-     * Initialize the collection by performing these actions
-     * - Create storage location (for FS storage)
-     * - Builds a list of document keys
-     * - Build a document index
+     * Removes from targetSet all items that are not in filterSet, and return result
+     * Does not mutate targetSet
+     * @param targetSet
+     * @param filterSet
      */
-    async init() {
-        if (this._bInit) {
-            throw new Error(`collection ${this._path} already initialized.`);
-        }
-        await this.storage.createLocation(this._path);
-        const aKeys = await this.storage.getList(this._path);
-        this._keys = new Set<string>(aKeys);
-        for (const [indexName, indexOptions] of Object.entries(this._indexOptions)) {
-            this.createIndex(indexName, indexOptions.type, indexOptions);
-        }
-        await this.indexAllDocuments();
-        this._bInit = true;
-    }
-
-    /**
-     * Iterates through a set of documents and returns the list of document keys matching the specified predicate
-     * @param pFunction a predicate, returns true or false
-     * @param keys starting set of keys, if not specified, take all collection keys
-     * @private
-     */
-    async filter(
-        pFunction: (data: JsonObject, key: string, index: number) => boolean,
-        keys?: string[] | undefined
-    ): Promise<string[]> {
-        const bFullScan = keys == undefined;
-        const aKeys = bFullScan ? this.keys : keys;
-
-        const aValidKeys = new Set<string>();
-        await applyOnBunchOfDocs(aKeys, this, aValidKeys, pFunction);
-        return [...aValidKeys];
-    }
-
-    /**
-     * Return true is the key is valid (not containing characters that will upset the file system)
-     * @param key {string|number} document identifier
-     * @return {boolean}
-     * @private
-     */
-    private _isKeyValid(key: string): boolean {
-        // must not contain special chars '/\?%*:|"<>.,;= '
-        // must contain only char in range 32-127
-        return !!key.match(/^(\.|-|\w)+$/);
+    private _intersection(targetSet: Set<string>, filterSet: Set<string>) {
+        return new Set([...targetSet].filter((element) => filterSet.has(element)));
     }
 
     /**
@@ -168,40 +128,21 @@ export class Collection<T extends JsonObject> implements ILoader {
     }
 
     /**
-     * Creates an index for a given property.
-     * Only top level properties of a document may be indexed
-     * @param name name of the indexed property
-     * @param indexType index type ; see INDEX_TYPES enum
-     * @param options index options
+     * Return true is the key is valid (not containing characters that will upset the file system)
+     * @param key {string|number} document identifier
+     * @return {boolean}
+     * @private
      */
-    private createIndex(
-        name: string,
-        indexType: INDEX_TYPES,
-        options: IndexCommonOptions = {}
-    ): void {
-        if (this._bInit) {
-            throw new Error(
-                `collection ${this._path} already initialized. index should have been declared at construction`
-            );
-        }
-        this._indexManager.createIndex(name, indexType, options);
-    }
-
-    /**
-     * Removes a document from index manager
-     * @param key
-     */
-    async unindexDocument(key: string) {
-        const oPrevDoc = await this.load(key);
-        if (oPrevDoc) {
-            this._indexManager.unindexDocument(key, oPrevDoc);
-        }
+    private _isKeyValid(key: string): boolean {
+        // must not contain special chars '/\?%*:|"<>.,;= '
+        // must contain only char in range 32-127
+        return !!key.match(/^(\.|-|\w)+$/);
     }
 
     /**
      * indexes all documents
      */
-    private async indexAllDocuments(): Promise<void> {
+    private async _indexAllDocuments(): Promise<void> {
         this._indexManager.clearAll();
         await this.filter((data: JsonObject, key: string, index: number) => {
             this._indexManager.indexDocument(key, data);
@@ -210,42 +151,14 @@ export class Collection<T extends JsonObject> implements ILoader {
     }
 
     /**
-     * Write a document in storage
-     * @param key document primary key
-     * @param oDocument document content
+     * Removes a document from index manager
+     * @param key
      */
-    async save(key: string, oDocument: T) {
-        this._checkKey(key);
-        await this.unindexDocument(key);
-        await this.storage.write(this._path, key, oDocument);
-        this._keys.add(key);
-        this._indexManager.indexDocument(key, oDocument);
-    }
-
-    /**
-     * Read a document from storage and return its content
-     * @param key document primary key
-     */
-    async load(key: string): Promise<T | undefined> {
-        this._checkKey(key);
-        ++this._stats.loads;
-        const document = await this.storage.read(this._path, key);
-        if (document !== undefined) {
-            return document as T;
-        } else {
-            return undefined;
+    async _unindexDocument(key: string) {
+        const oPrevDoc = await this.load(key);
+        if (oPrevDoc) {
+            this._indexManager.unindexDocument(key, oPrevDoc);
         }
-    }
-
-    /**
-     * Remove a document from the storage
-     * @param key document primary key
-     */
-    async delete(key: string) {
-        this._checkKey(key);
-        await this.unindexDocument(key);
-        await this.storage.remove(this._path, key);
-        this._keys.delete(key);
     }
 
     /**
@@ -253,7 +166,7 @@ export class Collection<T extends JsonObject> implements ILoader {
      * @param sPropName
      * @param propValue
      */
-    async evaluateOperator(
+    private async evaluateOperator(
         sPropName: string,
         propValue: FieldValue
     ): Promise<string[] | undefined> {
@@ -286,7 +199,7 @@ export class Collection<T extends JsonObject> implements ILoader {
                             typeof operand == 'number'
                         ) {
                             const k = new Set<string>(await equal(this, sPropName, operand));
-                            result = bFirst ? k : this.intersection(k, result);
+                            result = bFirst ? k : this._intersection(k, result);
                         } else {
                             throw new TypeError(
                                 `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
@@ -301,7 +214,7 @@ export class Collection<T extends JsonObject> implements ILoader {
                             typeof operand === 'number'
                         ) {
                             const k = new Set<string>(await notEqual(this, sPropName, operand));
-                            result = bFirst ? k : this.intersection(k, result);
+                            result = bFirst ? k : this._intersection(k, result);
                         } else {
                             throw new TypeError(
                                 `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
@@ -314,7 +227,7 @@ export class Collection<T extends JsonObject> implements ILoader {
                             const k = new Set<string>(
                                 await greaterThan<T>(this, sPropName, operand)
                             );
-                            result = bFirst ? k : this.intersection(k, result);
+                            result = bFirst ? k : this._intersection(k, result);
                         } else {
                             throw new TypeError(
                                 `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
@@ -325,7 +238,7 @@ export class Collection<T extends JsonObject> implements ILoader {
                     case '$lt': {
                         if (typeof operand == 'string' || typeof operand === 'number') {
                             const k = new Set<string>(await lesserThan(this, sPropName, operand));
-                            result = bFirst ? k : this.intersection(k, result);
+                            result = bFirst ? k : this._intersection(k, result);
                         } else {
                             throw new TypeError(
                                 `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
@@ -338,7 +251,7 @@ export class Collection<T extends JsonObject> implements ILoader {
                             const k = new Set<string>(
                                 await greaterThan(this, sPropName, operand, true)
                             );
-                            result = bFirst ? k : this.intersection(k, result);
+                            result = bFirst ? k : this._intersection(k, result);
                         } else {
                             throw new TypeError(
                                 `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
@@ -351,7 +264,7 @@ export class Collection<T extends JsonObject> implements ILoader {
                             const k = new Set<string>(
                                 await lesserThan(this, sPropName, operand, true)
                             );
-                            result = bFirst ? k : this.intersection(k, result);
+                            result = bFirst ? k : this._intersection(k, result);
                         } else {
                             throw new TypeError(
                                 `Unexpected operand type for operator '${operator}' expected string | number, got ${typeof operand}`
@@ -371,7 +284,10 @@ export class Collection<T extends JsonObject> implements ILoader {
      * Evaluate an indexed property value.
      * Returns a list of keys pointing to document where the clause sPropName = propValue is true
      */
-    async evaluateIndexedProperty(sPropName: string, propValue: FieldValue): Promise<string[]> {
+    private async evaluateIndexedProperty(
+        sPropName: string,
+        propValue: FieldValue
+    ): Promise<string[]> {
         if (
             typeof propValue === 'number' ||
             typeof propValue === 'string' ||
@@ -401,7 +317,10 @@ export class Collection<T extends JsonObject> implements ILoader {
         return r ?? [];
     }
 
-    async evaluateNonIndexedProperty(sPropName: string, propValue: FieldValue): Promise<string[]> {
+    private async evaluateNonIndexedProperty(
+        sPropName: string,
+        propValue: FieldValue
+    ): Promise<string[]> {
         if (
             typeof propValue === 'number' ||
             typeof propValue === 'string' ||
@@ -415,19 +334,113 @@ export class Collection<T extends JsonObject> implements ILoader {
     }
 
     /**
-     * Removes from targetSet all items that are not in filterSet, and return result
-     * Does not mutate targetSet
-     * @param targetSet
-     * @param filterSet
+     * Creates an index for a given property.
+     * Only top level properties of a document may be indexed
+     * @param name name of the indexed property
+     * @param indexType index type ; see INDEX_TYPES enum
+     * @param options index options
      */
-    intersection(targetSet: Set<string>, filterSet: Set<string>) {
-        return new Set([...targetSet].filter((element) => filterSet.has(element)));
+    private createIndex(
+        name: string,
+        indexType: INDEX_TYPES,
+        options: IndexCommonOptions = {}
+    ): void {
+        if (this._bInit) {
+            throw new Error(
+                `collection ${this._path} already initialized. index should have been declared at construction`
+            );
+        }
+        this._indexManager.createIndex(name, indexType, options);
     }
 
     /**
-     * Find documents using a query languege similar of mongo
-     * @param oQuery query langage :
+     * Initialize the collection by performing these actions
+     * - Create storage location (for FS storage)
+     * - Builds a list of document keys
+     * - Build a document index
+     */
+    async init(): Promise<void> {
+        if (this._bInit) {
+            throw new Error(`collection ${this._path} already initialized.`);
+        }
+        await this.storage.createLocation(this._path);
+        const aKeys = await this.storage.getList(this._path);
+        this._keys = new Set<string>(aKeys);
+        for (const [indexName, indexOptions] of Object.entries(this._indexOptions)) {
+            this.createIndex(indexName, indexOptions.type, indexOptions);
+        }
+        await this._indexAllDocuments();
+        this._bInit = true;
+    }
+
+    /**
+     * Iterates through a set of documents and returns the list of document keys matching the specified predicate
+     * @param pFunction a predicate, returns true or false
+     * @param keys starting set of keys, if not specified, take all collection keys
+     * @private
+     */
+    async filter(
+        pFunction: (data: JsonObject, key: string, index: number) => boolean,
+        keys?: string[] | undefined
+    ): Promise<string[]> {
+        const bFullScan = keys == undefined;
+        const aKeys = bFullScan ? this.keys : keys;
+
+        const aValidKeys = new Set<string>();
+        await applyOnBunchOfDocs(aKeys, this, aValidKeys, pFunction);
+        return [...aValidKeys];
+    }
+
+    /**
+     * Write a document in storage
+     * @param key document primary key
+     * @param oDocument document content
+     */
+    async save(key: string, oDocument: T): Promise<void> {
+        this._checkKey(key);
+        await this._unindexDocument(key);
+        await this.storage.write(this._path, key, oDocument);
+        this._keys.add(key);
+        this._indexManager.indexDocument(key, oDocument);
+    }
+
+    /**
+     * Read a document from storage and return its content
+     * @param key document primary key
+     */
+    async load(key: string): Promise<T | undefined> {
+        this._checkKey(key);
+        ++this._stats.loads;
+        const document = await this.storage.read(this._path, key);
+        if (document !== undefined) {
+            return document as T;
+        } else {
+            return undefined;
+        }
+    }
+
+    /**
+     * Remove a document from the storage
+     * @param key document primary key
+     */
+    async delete(key: string): Promise<void> {
+        this._checkKey(key);
+        await this._unindexDocument(key);
+        await this.storage.remove(this._path, key);
+        this._keys.delete(key);
+    }
+
+    /**
+     * Find documents using a query language similar of mongodb (but with fewer operators)
+     * @param oQuery query langage
      * @example .find({ name: { $gte: 'M' }}
+     * operators:
+     *  - { $gte: operand } evaluates as true when field value is greater than or equal to operand
+     *  - { $gt: operand } evaluates as true when field value is greater than operand
+     *  - { $lte: operand } evaluates as true when field value is lesser than or equal to operand
+     *  - { $lt: operand } evaluates as true when field value is lesser than operand
+     *  - { $eq: operand } evaluates as true when field value is equal to operand
+     *  - { $neq: operand } evaluates as true when field value is not equal to operand
      */
     async find(oQuery: QueryObject): Promise<Cursor<T>> {
         const s = this._stats;
@@ -464,7 +477,7 @@ export class Collection<T extends JsonObject> implements ILoader {
                         foundKeys.add(key);
                     });
                 } else {
-                    foundKeys = this.intersection(foundKeys, new Set(fk));
+                    foundKeys = this._intersection(foundKeys, new Set(fk));
                 }
                 const currentLoads = s.loads - sumIndexLoads;
                 sil.push({ property: propName, loads: currentLoads });
@@ -480,7 +493,7 @@ export class Collection<T extends JsonObject> implements ILoader {
                         foundKeys.add(key);
                     });
                 } else {
-                    foundKeys = this.intersection(foundKeys, new Set(fk));
+                    foundKeys = this._intersection(foundKeys, new Set(fk));
                 }
             }
         }
