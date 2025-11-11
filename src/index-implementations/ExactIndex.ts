@@ -7,7 +7,14 @@ import { ScalarValue } from '../types';
  * suitable for string or number fields that have a few limited number of different values (less than 1000)
  */
 export class ExactIndex<T extends ScalarValue, K> extends ReducedIndex<T, K, T> {
+    constructor(_nullable: boolean = false) {
+        super(_nullable);
+    }
     reduceValue(value: T): T {
         return value;
+    }
+
+    get isExact() {
+        return true;
     }
 }

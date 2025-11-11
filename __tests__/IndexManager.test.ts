@@ -91,7 +91,7 @@ describe('IndexManager', () => {
             im.createIndex('ban', INDEX_TYPES.TRUTHY, {});
             im.indexDocument('1', { name: 'user1', ban: { reason: 'too lame' } });
             im.indexDocument('2', { name: 'user1', ban: null });
-            expect(im.getIndexedKeys('ban', false)).toEqual(['2']);
+            expect(im.getIndexedKeys('ban', null)).toEqual(['2']);
         });
     });
 

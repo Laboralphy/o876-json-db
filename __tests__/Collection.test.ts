@@ -288,12 +288,18 @@ describe('Collection find', function () {
         await c.save('1020', { id: 1020, name: 'debora', ban: null });
         await c.save('1030', { id: 1030, name: 'eliza', ban: { date: 20201015 } });
         await c.save('1040', { id: 1040, name: 'felix', ban: null });
-        const x = await c.find({ ban: { $empty: false } });
+        const x = await c.find({ ban: { $neq: null } });
         expect(x.count).toBe(2);
         await expect(x.fetchAll()).resolves.toEqual([
             { id: 1010, name: 'bob', ban: { date: 20090812 } },
             { id: 1030, name: 'eliza', ban: { date: 20201015 } },
         ]);
+        const x2 = await c.find({ ban: null });
+        expect(x2.count).toBe(4);
+        expect(x2.keys.includes('1000')).toBe(true);
+        expect(x2.keys.includes('1015')).toBe(true);
+        expect(x2.keys.includes('1020')).toBe(true);
+        expect(x2.keys.includes('1040')).toBe(true);
     });
     it('should return 1015 & 1030 & 1040 (contains "li")', async function () {
         const c = new Collection('my_path', {

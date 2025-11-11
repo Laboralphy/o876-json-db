@@ -9,12 +9,21 @@ import { ReducedIndex } from './ReducedIndex';
 export class NumericIndex extends ReducedIndex<number, string, number> {
     /**
      * @param _precision size of numeric range
+     * @param _nullable if true, null values are accepted
      */
-    constructor(private readonly _precision: number = 1) {
-        super();
+    constructor(
+        private readonly _precision: number = 1,
+        _nullable: boolean = false
+    ) {
+        super(_nullable);
     }
 
     reduceValue(value: number): number {
-        return Math.floor(value / this._precision);
+        const p = this._precision;
+        return p === 1 ? value : Math.floor(value / p);
+    }
+
+    get isExact() {
+        return this._precision === 1;
     }
 }

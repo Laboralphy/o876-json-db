@@ -9,12 +9,14 @@ export class CrcIndex extends ReducedIndex<string, string, string> {
     /**
      * @param _size size of cyclic redundancy check (values : 16 or 32)
      * @param _caseInsensitive if true then index is case-insensitive
+     * @param _nullable if true, values may be null
      */
     constructor(
         private readonly _size: 16 | 32,
-        private readonly _caseInsensitive: boolean
+        private readonly _caseInsensitive: boolean,
+        _nullable: boolean
     ) {
-        super();
+        super(_nullable);
         if (this._size != 16 && this._size != 32) {
             throw new TypeError('First parameter values must be 16 or 32');
         }
@@ -32,5 +34,9 @@ export class CrcIndex extends ReducedIndex<string, string, string> {
                 return crc16(value).toString(36);
             }
         }
+    }
+
+    get isExact() {
+        return false;
     }
 }

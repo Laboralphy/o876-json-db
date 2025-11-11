@@ -2,7 +2,15 @@ import { Collection } from '../src/Collection';
 import { INDEX_TYPES } from '../src/enums';
 import { TestStorage } from '../src/storage-adapters/TestStorage';
 
-const DB = {
+type CharacterType = {
+    name: string;
+    familyName: string;
+    gender: 'male' | 'female';
+    age: number;
+    location: string;
+};
+
+const DB: Record<string, CharacterType> = {
     p0001: {
         name: 'Eddard',
         familyName: 'Stark',
@@ -195,7 +203,7 @@ const DB = {
 };
 
 describe('multiple conditions', () => {
-    let oCharacters: Collection;
+    let oCharacters: Collection<CharacterType>;
     beforeEach(async () => {
         oCharacters = new Collection('soiaf_characters', {
             familyName: {
@@ -264,8 +272,8 @@ describe('multiple conditions', () => {
         const c = await oCharacters.find({ familyName: 'Lannister', gender: 'male' });
         expect(c.count).toBe(2);
         const r = await c.fetchAll();
-        expect(r[0].name).toBe('Lannister');
-        expect(r[1].name).toBe('Lannister');
+        expect(r[0].name).toBe('Tyrion');
+        expect(r[1].name).toBe('Jaime');
         expect(r[0].gender).toBe('male');
         expect(r[1].gender).toBe('male');
     });
@@ -276,6 +284,7 @@ describe('dealing with null', () => {
         const oDB = new Collection('test1', {
             dateRead: {
                 type: INDEX_TYPES.NUMERIC,
+                nullable: true,
             },
         });
         oDB.storage = new TestStorage();
@@ -288,5 +297,47 @@ describe('dealing with null', () => {
             message: 'm2',
             dateRead: null,
         });
+        // Two messages have been posted, one with date defined, one with date null
+        const c1 = await oDB.find({ dateRead: null });
+        expect(c1.keys).toEqual(['f2']);
+        const c2 = await oDB.find({ dateRead: { $neq: null } });
+        expect(c2.keys).toEqual(['f1']);
+    });
+});
+
+describe('test boolean index', () => {
+    const dbbool = [
+        {
+            userId: 'u1',
+            deleted: false,
+        },
+    ];
+    it('should not find doc1 when boolean field value is true', async () => {
+        const c = new Collection<{ userId: string; deleted: boolean }>('c1', {
+            userId: {
+                type: INDEX_TYPES.PARTIAL,
+                size: 0,
+            },
+            deleted: {
+                type: INDEX_TYPES.BOOLEAN,
+            },
+        });
+        c.storage = new TestStorage();
+        await c.init();
+        await c.save('doc1', { userId: 'u1', deleted: true });
+
+        const cursor = await c.find({ userId: 'u1', deleted: false });
+        expect(cursor.count).toBe(0);
+
+        const cursor2 = await c.find({ userId: 'u1', deleted: true });
+        expect(cursor2.count).toBe(1);
+
+        await c.save('doc1', { userId: 'u1', deleted: false });
+
+        const cursor3 = await c.find({ userId: 'u1', deleted: false });
+        expect(cursor3.count).toBe(1);
+
+        const cursor4 = await c.find({ userId: 'u1', deleted: true });
+        expect(cursor4.count).toBe(0);
     });
 });

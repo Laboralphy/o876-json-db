@@ -11,16 +11,22 @@ export class PartialIndex extends ReducedIndex<string, string, string> {
     /**
      * @param _size size of partial chunk (in characters)
      * @param _caseInsensitive if true then index is case-insensitive
+     * @param _nullable if true, null values are accepted
      */
     constructor(
         private readonly _size: number,
-        private readonly _caseInsensitive: boolean
+        private readonly _caseInsensitive: boolean,
+        _nullable: boolean
     ) {
-        super();
+        super(_nullable);
     }
 
     reduceValue(value: string): string {
         const sSub = this._size > 0 ? value.substring(0, this._size) : value;
         return this._caseInsensitive ? normalizeString(sSub) : sSub;
+    }
+
+    get isExact() {
+        return this._size === 0 && this._caseInsensitive;
     }
 }
