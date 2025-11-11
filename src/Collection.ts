@@ -25,7 +25,7 @@ export type CollectionStat = {
     indexLog: { property: string; loads: number }[];
 };
 
-export class Collection implements ILoader {
+export class Collection<T extends JsonObject> implements ILoader {
     private _indexManager = new IndexManager();
     private _storage: IStorage | undefined;
     private _keys = new Set<string>();
@@ -214,7 +214,7 @@ export class Collection implements ILoader {
      * @param key document primary key
      * @param oDocument document content
      */
-    async save<T extends JsonObject>(key: string, oDocument: T) {
+    async save(key: string, oDocument: T) {
         this._checkKey(key);
         await this.unindexDocument(key);
         await this.storage.write(this._path, key, oDocument);
@@ -226,7 +226,7 @@ export class Collection implements ILoader {
      * Read a document from storage and return its content
      * @param key document primary key
      */
-    async load<T extends JsonObject>(key: string): Promise<T | undefined> {
+    async load(key: string): Promise<T | undefined> {
         this._checkKey(key);
         ++this._stats.loads;
         const document = await this.storage.read(this._path, key);
@@ -283,9 +283,9 @@ export class Collection implements ILoader {
                         if (
                             operand === null ||
                             typeof operand == 'string' ||
-                            typeof operand === 'number'
+                            typeof operand == 'number'
                         ) {
-                            const k = new Set(await equal(this, sPropName, operand));
+                            const k = new Set<string>(await equal(this, sPropName, operand));
                             result = bFirst ? k : this.intersection(k, result);
                         } else {
                             throw new TypeError(
@@ -300,7 +300,7 @@ export class Collection implements ILoader {
                             typeof operand == 'string' ||
                             typeof operand === 'number'
                         ) {
-                            const k = new Set(await notEqual(this, sPropName, operand));
+                            const k = new Set<string>(await notEqual(this, sPropName, operand));
                             result = bFirst ? k : this.intersection(k, result);
                         } else {
                             throw new TypeError(
@@ -311,7 +311,9 @@ export class Collection implements ILoader {
                     }
                     case '$gt': {
                         if (typeof operand == 'string' || typeof operand === 'number') {
-                            const k = new Set(await greaterThan(this, sPropName, operand));
+                            const k = new Set<string>(
+                                await greaterThan<T>(this, sPropName, operand)
+                            );
                             result = bFirst ? k : this.intersection(k, result);
                         } else {
                             throw new TypeError(
@@ -322,7 +324,7 @@ export class Collection implements ILoader {
                     }
                     case '$lt': {
                         if (typeof operand == 'string' || typeof operand === 'number') {
-                            const k = new Set(await lesserThan(this, sPropName, operand));
+                            const k = new Set<string>(await lesserThan(this, sPropName, operand));
                             result = bFirst ? k : this.intersection(k, result);
                         } else {
                             throw new TypeError(
@@ -333,7 +335,9 @@ export class Collection implements ILoader {
                     }
                     case '$gte': {
                         if (typeof operand == 'string' || typeof operand === 'number') {
-                            const k = new Set(await greaterThan(this, sPropName, operand, true));
+                            const k = new Set<string>(
+                                await greaterThan(this, sPropName, operand, true)
+                            );
                             result = bFirst ? k : this.intersection(k, result);
                         } else {
                             throw new TypeError(
@@ -344,7 +348,9 @@ export class Collection implements ILoader {
                     }
                     case '$lte': {
                         if (typeof operand == 'string' || typeof operand === 'number') {
-                            const k = new Set(await lesserThan(this, sPropName, operand, true));
+                            const k = new Set<string>(
+                                await lesserThan(this, sPropName, operand, true)
+                            );
                             result = bFirst ? k : this.intersection(k, result);
                         } else {
                             throw new TypeError(
@@ -423,7 +429,7 @@ export class Collection implements ILoader {
      * @param oQuery query langage :
      * @example .find({ name: { $gte: 'M' }}
      */
-    async find<T extends JsonObject>(oQuery: QueryObject): Promise<Cursor<T>> {
+    async find(oQuery: QueryObject): Promise<Cursor<T>> {
         const s = this._stats;
         s.loads = 0;
         s.indexes = [];

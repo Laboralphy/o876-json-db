@@ -3,8 +3,8 @@ import { JsonObject } from '../types/Json';
 import { comparator } from '../comparator';
 import { applyOnBunchOfDocs } from './includes/apply-bunch-of-docs';
 
-export async function greaterThan(
-    collection: Collection,
+export async function greaterThan<T extends JsonObject>(
+    collection: Collection<T>,
     sPropName: string,
     operand: string | number,
     orEqual: boolean = false

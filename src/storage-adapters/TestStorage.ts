@@ -43,7 +43,8 @@ export class TestStorage implements IStorage {
     async read(location: string, name: string): Promise<JsonObject | undefined> {
         const l = await this.getLocation(location);
         await this.randomPause();
-        return l.get(name);
+        const document = l.get(name);
+        return document !== undefined ? { ...document } : undefined;
     }
 
     async remove(location: string, name: string): Promise<void> {

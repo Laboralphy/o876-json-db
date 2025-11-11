@@ -80,6 +80,20 @@ export class Cursor<T extends JsonObject> {
     }
 
     /**
+     * Iterates through all cursor documents
+     * @param docFunc
+     */
+    async forEach(docFunc: (document: T, key: string) => void) {
+        let document = await this.first();
+        while (this._index < this._keys.length) {
+            if (document) {
+                docFunc(document, this._keys[this._index]);
+            }
+            document = await this.next();
+        }
+    }
+
+    /**
      * Returns an array with all loaded items
      */
     async fetchAll(nStart: number = 0, nEnd?: number): Promise<T[]> {

@@ -37,4 +37,32 @@ describe('Cursor', () => {
         await expect(c.fetchAll(1, 10)).resolves.toEqual([{ result: 222 }, { result: 333 }]);
         await expect(c.fetchAll(0, 1)).resolves.toEqual([{ result: 111 }]);
     });
+    it('should iterates through all document', async () => {
+        type DocumentType = { result: number };
+        const l: ILoader = {
+            async load(k): Promise<DocumentType | undefined> {
+                const n = parseInt(k);
+                if (!isNaN(n) && n > 0 && n <= 9) {
+                    return { result: n * 100 + n * 10 + n };
+                } else {
+                    return undefined;
+                }
+            },
+        };
+        const c = new Cursor<DocumentType>(['1', '2', '3'], l);
+        const log: { document: DocumentType; key: string }[] = [];
+        await c.forEach((document, key) => {
+            if (document) {
+                log.push({
+                    key,
+                    document,
+                });
+            }
+        });
+        expect(log).toEqual([
+            { key: '1', document: { result: 111 } },
+            { key: '2', document: { result: 222 } },
+            { key: '3', document: { result: 333 } },
+        ]);
+    });
 });

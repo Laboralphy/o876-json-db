@@ -1,11 +1,9 @@
 import { Collection } from '../Collection';
 import { JsonObject } from '../types/Json';
-import { comparator } from '../comparator';
-import { applyOnBunchOfDocs } from './includes/apply-bunch-of-docs';
 import { equal } from './equal';
 
-export async function notEqual(
-    collection: Collection,
+export async function notEqual<T extends JsonObject>(
+    collection: Collection<T>,
     sPropName: string,
     operand: string | number | null
 ) {

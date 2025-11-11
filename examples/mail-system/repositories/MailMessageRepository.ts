@@ -5,7 +5,7 @@ import { MailMessage } from '../entities/MailMessage';
 import { TestStorage } from '../../../src/storage-adapters/TestStorage';
 
 export class MailMessageRepository {
-    #collection: Collection = new Collection('mail-messages', {
+    #collection: Collection<MailMessage> = new Collection('mail-messages', {
         senderId: {
             type: INDEX_TYPES.PARTIAL,
             size: 0,

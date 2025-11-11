@@ -3,11 +3,11 @@ import { JsonObject } from '../../types/Json';
 
 const BUNCH_SIZE = 1000;
 
-export async function applyOnBunchOfDocs(
+export async function applyOnBunchOfDocs<T extends JsonObject>(
     keys: string[],
-    collection: Collection,
+    collection: Collection<T>,
     validKeys: Set<string>,
-    f: (document: JsonObject, key: string, index: number) => boolean
+    f: (document: T, key: string, index: number) => boolean
 ): Promise<void> {
     const kl = keys.length;
     let nIndex = 0;

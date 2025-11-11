@@ -3,8 +3,8 @@ import { JsonObject } from '../types/Json';
 import { comparator } from '../comparator';
 import { applyOnBunchOfDocs } from './includes/apply-bunch-of-docs';
 
-export async function equal(
-    collection: Collection,
+export async function equal<T extends JsonObject>(
+    collection: Collection<T>,
     sPropName: string,
     operand: string | number | null
 ) {

@@ -46,7 +46,9 @@ export class MailManager {
             nNow
         );
         return Promise.all(
-            toUserIds.map((userId) => this._inboxRepository.receiveMessage(userId, message, nNow))
+            toUserIds.map((userId) =>
+                this._inboxRepository.receiveMessage(userId, message.id, nNow)
+            )
         );
     }
 
@@ -79,7 +81,9 @@ export class MailManager {
     }
 
     /**
-     * The specified user is reading the specified message
+     * The specified user is reading the specified message.
+     * this will mark the message as read and return the content
+     * if the corresponding message has been archive, the readMessage function erase the entry in inbox
      * @param userId
      * @param messageId
      */
