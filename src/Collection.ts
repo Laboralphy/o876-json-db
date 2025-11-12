@@ -380,7 +380,7 @@ export class Collection<T extends JsonObject> implements ILoader {
      * @private
      */
     async filter(
-        pFunction: (data: JsonObject, key: string, index: number) => boolean,
+        pFunction: (data: T, key: string, index: number) => boolean,
         keys?: string[] | undefined
     ): Promise<string[]> {
         const bFullScan = keys == undefined;
