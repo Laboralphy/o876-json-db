@@ -73,7 +73,9 @@ export class MailInboxRepository {
                 ...m,
                 tag: nTag,
             });
-            m.tag = nTag;
+        }
+        if (aUntagged.length > 0) {
+            aInbox.splice(0, aInbox.length, ...(await aInboxCursor.fetchAll()));
         }
         return aInbox
             .filter((a) => !a.deleted)

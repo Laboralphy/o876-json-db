@@ -413,6 +413,7 @@ export class Collection<T extends JsonObject> implements ILoader {
         ++this._stats.loads;
         const document = await this.storage.read(this._path, key);
         if (document !== undefined) {
+            Object.freeze(document);
             return document as T;
         } else {
             return undefined;

@@ -18,24 +18,11 @@ function getRandomWord(n: number) {
 type DocumentFormat = {
     id: string;
     author: string;
-    title: string;
     dateCreation: number;
-    flag95: boolean;
-    flag80: boolean;
-    flag50: boolean;
+    subject: string;
+    body: string;
+    read: boolean;
 };
-
-function createRandomDocument(id: number | string) {
-    return {
-        id: id.toString(),
-        author: getRandomWord(8),
-        title: getRandomWord(10) + ' ' + getRandomWord(10) + ' ' + getRandomWord(10),
-        dateCreation: 1761668387470 - ((Math.random() * 31536000000) | 0),
-        flag95: Math.random() > 0.95,
-        flag80: Math.random() > 0.8,
-        flag50: Math.random() > 0.5,
-    };
-}
 
 const AUTHORS = [
     'Alice',
@@ -70,23 +57,14 @@ function generateRealisticMessages(count: number) {
     return messages;
 }
 
-function createBunchOfDocuments(n: number) {
-    const aDocuments = [];
-    for (let i = 0; i < n; ++i) {
-        const d = createRandomDocument(i);
-        aDocuments.push(d);
-    }
-    return aDocuments;
-}
-
-async function populateCollection(d: DocumentFormat[], c: Collection) {
+async function populateCollection(d: DocumentFormat[], c: Collection<DocumentFormat>) {
     return Promise.all(d.map((doc) => c.save(doc.id, doc)));
 }
 
 class TestProcess1 {
     #documents: any[] = [];
-    #cNonIndexed: Collection = new Collection('my_path', {});
-    #cIndexed: Collection = new Collection('my_path', {
+    #cNonIndexed: Collection<DocumentFormat> = new Collection('my_path', {});
+    #cIndexed: Collection<DocumentFormat> = new Collection('my_path', {
         dateCreation: {
             type: INDEX_TYPES.NUMERIC,
             precision: 1000 * 3600 * 24,
@@ -184,13 +162,6 @@ async function main() {
     await suite.run();
     console.log(suite.name);
     console.table(suite.table());
-
-    // await p.qGetMessageFrom09_29_Index();
-    // console.log(p.collections.indexed.stats);
-    //
-    // await p.qGetMessageMultiUser_last30days_Index();
-    // console.log(p.collections.indexed.stats);
 }
 
 main().then(() => console.log('done'));
-// testOneShot().then(() => console.log('done'));
