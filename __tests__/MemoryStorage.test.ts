@@ -43,6 +43,6 @@ describe('write/read', function () {
         await ms.createLocation('test-location');
         await expect(() => {
             return ms.write('test-location2', 'my-file', { data: 'file content' });
-        }).rejects.toThrow(new Error('storage location test-location2 not found'));
+        }).rejects.toThrow('storage location test-location2 not found');
     });
 });

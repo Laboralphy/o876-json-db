@@ -33,7 +33,7 @@ describe('Collection.init', function () {
     it('should call init with no error when setting fresh new storage', async function () {
         const c = new Collection('my_path');
         c.storage = new TestStorage();
-        await expect(() => c.init()).resolves.not.toThrow();
+        await expect(c.init()).resolves.not.toThrow();
     });
     it('should create a new my_path location', async function () {
         const c = new Collection('my_path');
